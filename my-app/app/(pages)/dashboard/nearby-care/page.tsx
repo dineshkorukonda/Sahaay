@@ -407,6 +407,9 @@ export default function NearbyCarePage() {
                         <div className="flex items-center gap-2 text-xs font-medium">
                             <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span> NGO
                         </div>
+                        <div className="flex items-center gap-2 text-xs font-medium">
+                            <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span> Your Location
+                        </div>
                     </div>
                 </div>
             </div>
