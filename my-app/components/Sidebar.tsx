@@ -18,13 +18,13 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Nearby Care", href: "/nearby-care", icon: MapPin },
-    { name: "Health Summary", href: "/health-summary", icon: Activity },
-    { name: "Care Plan", href: "/care-plan", icon: FileText },
-    { name: "Community", href: "/community", icon: Users },
-    { name: "Family", href: "/family", icon: Users }, // Using Users for Family as well, or maybe HeartPulse? Let's use Users for now as per image looks like family
-    { name: "Support", href: "/support", icon: LifeBuoy },
-    { name: "Settings", href: "/settings", icon: Settings },
+    { name: "Nearby Care", href: "/dashboard/nearby-care", icon: MapPin },
+    { name: "Health Summary", href: "/dashboard/health-summary", icon: Activity },
+    { name: "Care Plan", href: "/dashboard/care-plan", icon: FileText },
+    { name: "Community", href: "/dashboard/community", icon: Users },
+    { name: "Family", href: "/dashboard/family", icon: Users }, // Using Users for Family as well, or maybe HeartPulse? Let's use Users for now as per image looks like family
+    { name: "Support", href: "/dashboard/support", icon: LifeBuoy },
+    { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 export function Sidebar() {
