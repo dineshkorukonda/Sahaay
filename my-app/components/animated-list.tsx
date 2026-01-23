@@ -51,10 +51,11 @@ export function AnimatedList({
     >
       {React.Children.map(children, (child, index) => {
         if (React.isValidElement(child)) {
+          const props = child.props as Record<string, any>
           return React.cloneElement(child, {
-            ...child.props,
+            ...props,
             style: {
-              ...child.props.style,
+              ...(props.style || {}),
               transitionDelay: `${index * 100}ms`,
             },
           } as any)
