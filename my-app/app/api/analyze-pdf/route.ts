@@ -38,12 +38,13 @@ export async function POST(req: Request) {
                 if (!contentToAnalyze) {
                     try {
                         // Use pdfjs-dist for PDF parsing (more reliable than pdf-parse)
-                        // Import the Node.js compatible version
-                        const pdfjs = await import('pdfjs-dist/legacy/build/pdf.js');
-                        const pdfjsModule = pdfjs.default || pdfjs;
+                        // Import pdfjs-dist - use the build/pdf.mjs path
+                        const pdfjsLib = await import('pdfjs-dist/build/pdf.mjs');
+                        // Get the getDocument function from the library
+                        const { getDocument } = pdfjsLib;
                         
                         // Load the PDF document
-                        const loadingTask = pdfjsModule.getDocument({
+                        const loadingTask = getDocument({
                             data: new Uint8Array(buffer),
                             useSystemFonts: true,
                             verbosity: 0

@@ -1,9 +1,9 @@
 "use client";
 
-import { GoogleMap, Marker, InfoWindow, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, Marker, InfoWindow, useJsApiLoader, Libraries } from '@react-google-maps/api';
 import { useCallback, useEffect, useState, useRef } from 'react';
 
-const libraries: ("places" | "drawing" | "geometry" | "localContext" | "visualization")[] = ['places'];
+const libraries: Libraries = ['places'];
 
 interface MapComponentProps {
     center: [number, number];
