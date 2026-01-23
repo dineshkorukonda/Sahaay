@@ -6,7 +6,7 @@ const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || 'fallback_secret_key_change_in_prod'
 );
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const token = request.cookies.get('token')?.value;
     const path = request.nextUrl.pathname;
 
@@ -50,7 +50,7 @@ export async function middleware(request: NextRequest) {
             // Let the page handle onboarding status check via API
             return NextResponse.next();
         } catch (error) {
-            console.error('Middleware Token Verification Failed:', error);
+            console.error('Proxy Token Verification Failed:', error);
             // Clear invalid token and redirect to login
             const response = NextResponse.redirect(new URL('/auth/login', request.url));
             response.cookies.delete('token');
