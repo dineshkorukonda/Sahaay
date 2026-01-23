@@ -53,26 +53,32 @@ export default function EmergencyInfo() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">Full Name</label>
+                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                            Full Name <span className="text-red-500">*</span>
+                        </label>
                         <input
                             type="text"
                             placeholder="Legal name of contact"
                             value={formData.contactName}
                             onChange={(e) => handleChange('contactName', e.target.value)}
                             onBlur={handleBlur}
+                            required
                             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent"
                         />
                     </div>
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">Relationship</label>
+                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                            Relationship <span className="text-red-500">*</span>
+                        </label>
                         <div className="relative">
                             <select
                                 value={formData.relationship}
                                 onChange={(e) => handleChange('relationship', e.target.value)}
                                 onBlur={handleBlur}
+                                required
                                 className="w-full appearance-none px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent cursor-pointer"
                             >
-                                <option>How are you related?</option>
+                                <option value="">How are you related?</option>
                                 <option>Parent</option>
                                 <option>Spouse</option>
                                 <option>Sibling</option>
@@ -82,7 +88,9 @@ export default function EmergencyInfo() {
                         </div>
                     </div>
                     <div className="md:col-span-2 space-y-1">
-                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">Phone Number</label>
+                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                            Phone Number <span className="text-red-500">*</span>
+                        </label>
                         <div className="flex space-x-2">
                             <div className="relative w-[120px]">
                                 <select

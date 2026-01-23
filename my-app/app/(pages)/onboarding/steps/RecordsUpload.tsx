@@ -1,114 +1,208 @@
 "use client";
 
-import React from "react";
-import { CloudUpload, FileText, Image as ImageIcon, Trash2, CheckCircle2, Loader2 } from "lucide-react";
+import React, { useState } from "react";
+import { CloudUpload, FileText, Trash2, CheckCircle2, Loader2, X } from "lucide-react";
 
-export default function RecordsUpload() {
+interface UploadedFile {
+    id: string;
+    file: File;
+    status: 'uploading' | 'processing' | 'ready' | 'error';
+    progress?: number;
+    fileName?: string;
+    fileUrl?: string;
+}
+
+interface RecordsUploadProps {
+    onRecordsChange?: (hasRecords: boolean) => void;
+}
+
+export default function RecordsUpload({ onRecordsChange }: RecordsUploadProps) {
+    const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const handleFileSelect = async (files: FileList | null) => {
+        if (!files || files.length === 0) return;
+
+        Array.from(files).forEach((file) => {
+            if (file.size > 10 * 1024 * 1024) {
+                alert(`${file.name} is too large. Maximum size is 10MB.`);
+                return;
+            }
+
+            const fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+            const newFile: UploadedFile = {
+                id: fileId,
+                file,
+                status: 'uploading',
+                progress: 0
+            };
+
+            setUploadedFiles((prev) => [...prev, newFile]);
+            uploadFile(newFile);
+        });
+    };
+
+    const uploadFile = async (fileItem: UploadedFile) => {
+        const formData = new FormData();
+        formData.append('file', fileItem.file);
+
+        try {
+            setUploadedFiles((prev) =>
+                prev.map((f) =>
+                    f.id === fileItem.id ? { ...f, status: 'processing' as const } : f
+                )
+            );
+
+            const res = await fetch('/api/analyze-pdf', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                setUploadedFiles((prev) =>
+                    prev.map((f) =>
+                        f.id === fileItem.id
+                            ? {
+                                ...f,
+                                status: 'ready' as const,
+                                fileName: fileItem.file.name,
+                                fileUrl: data.data?.fileUrl
+                            }
+                            : f
+                    )
+                );
+                if (onRecordsChange) {
+                    onRecordsChange(true);
+                }
+            } else {
+                throw new Error(data.error || 'Upload failed');
+            }
+        } catch (err) {
+            console.error('Upload error:', err);
+            setUploadedFiles((prev) =>
+                prev.map((f) =>
+                    f.id === fileItem.id ? { ...f, status: 'error' as const } : f
+                )
+            );
+            alert(`Failed to upload ${fileItem.file.name}`);
+        }
+    };
+
+    const handleDelete = (fileId: string) => {
+        setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
+        if (uploadedFiles.length === 1 && onRecordsChange) {
+            onRecordsChange(false);
+        }
+    };
+
     return (
         <div className="w-full max-w-3xl mx-auto space-y-10">
             <div className="text-center">
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Upload Medical Records</h2>
-                <p className="text-gray-500 max-w-xl mx-auto">
+                <h2 className="text-3xl font-serif font-medium text-foreground mb-2">Upload Medical Records</h2>
+                <p className="text-muted-foreground max-w-xl mx-auto">
                     Securely upload your previous health reports, prescriptions, or lab results. This helps our AI and doctors provide more accurate recommendations.
                 </p>
             </div>
 
             {/* Upload Zone */}
-            <label className="block border-2 border-dashed border-[#22c55e]/30 bg-green-50/30 rounded-3xl p-10 text-center hover:bg-green-50/50 hover:border-[#22c55e]/50 transition-all cursor-pointer group">
+            <label
+                className={`block border-2 border-dashed rounded-3xl p-10 text-center transition-all cursor-pointer group ${
+                    isDragging
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border bg-muted/30 hover:bg-muted/50 hover:border-primary/50'
+                }`}
+                onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    handleFileSelect(e.dataTransfer.files);
+                }}
+            >
                 <input
                     type="file"
                     className="hidden"
                     accept=".pdf,.jpg,.png,.jpeg"
-                    onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-
-                        const formData = new FormData();
-                        formData.append('file', file);
-
-                        try {
-                            // In a real app, update UI to show 'scanning' state
-                            alert("Scanning " + file.name + "...");
-                            const res = await fetch('/api/analyze-pdf', {
-                                method: 'POST',
-                                body: formData
-                            });
-                            const data = await res.json();
-                            if (data.success) {
-                                alert("Analysis Complete: " + data.data.diseaseName);
-                            } else {
-                                alert("Analysis Failed: " + data.error);
-                            }
-                        } catch (err) {
-                            console.error(err);
-                            alert("Upload failed");
-                        }
-                    }}
+                    multiple
+                    onChange={(e) => handleFileSelect(e.target.files)}
                 />
-                <div className="w-16 h-16 bg-[#22c55e]/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                    <CloudUpload className="w-8 h-8 text-[#22c55e]" />
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                    <CloudUpload className="w-8 h-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">Drag and drop files here</h3>
-                <p className="text-sm text-gray-400 mb-6">Supports PDF, JPG, PNG (Max 10MB per file)</p>
-                <div className="bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold py-2.5 px-6 rounded-lg shadow-lg shadow-green-500/20 transition-all active:scale-95 inline-block">
+                <h3 className="text-lg font-semibold text-foreground mb-1">Drag and drop files here</h3>
+                <p className="text-sm text-muted-foreground mb-6">Supports PDF, JPG, PNG (Max 10MB per file)</p>
+                <div className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2.5 px-6 rounded-lg shadow-lg shadow-primary/20 transition-all active:scale-95 inline-block">
                     Upload from Device
                 </div>
             </label>
 
-            {/* Recently Added List */}
-            <div>
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Recently Added</h4>
-                <div className="space-y-3">
-
-                    {/* File Item 1 - Ready */}
-                    <div className="flex items-center p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                        <div className="p-3 bg-red-50 rounded-lg mr-4">
-                            <FileText className="w-6 h-6 text-red-500" />
-                        </div>
-                        <div className="flex-1">
-                            <h5 className="font-bold text-gray-900 text-sm">Blood_Work_May_2023.pdf</h5>
-                            <p className="text-xs text-gray-400">2.4 MB • Uploaded 2 mins ago</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <span className="flex items-center gap-1.5 text-xs font-bold text-[#22c55e] bg-green-50 px-2.5 py-1 rounded-md">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                Ready
-                            </span>
-                            <button className="text-gray-400 hover:text-red-500 transition-colors">
-                                <Trash2 className="w-5 h-5" />
-                            </button>
-                        </div>
+            {/* Uploaded Files List */}
+            {uploadedFiles.length > 0 && (
+                <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                        Uploaded Files ({uploadedFiles.length})
+                    </h4>
+                    <div className="space-y-3">
+                        {uploadedFiles.map((fileItem) => (
+                            <div
+                                key={fileItem.id}
+                                className="flex items-center p-4 bg-card border border-border rounded-xl shadow-sm hover:shadow-md transition-shadow"
+                            >
+                                <div className={`p-3 rounded-lg mr-4 ${
+                                    fileItem.status === 'ready' ? 'bg-primary/10' :
+                                    fileItem.status === 'error' ? 'bg-destructive/10' :
+                                    'bg-secondary/10'
+                                }`}>
+                                    {fileItem.status === 'ready' ? (
+                                        <CheckCircle2 className="w-6 h-6 text-primary" />
+                                    ) : fileItem.status === 'error' ? (
+                                        <X className="w-6 h-6 text-destructive" />
+                                    ) : (
+                                        <Loader2 className="w-6 h-6 text-secondary animate-spin" />
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <h5 className="font-semibold text-foreground text-sm">
+                                        {fileItem.fileName || fileItem.file.name}
+                                    </h5>
+                                    <p className="text-xs text-muted-foreground">
+                                        {(fileItem.file.size / 1024 / 1024).toFixed(2)} MB •{' '}
+                                        {fileItem.status === 'uploading' && 'Uploading...'}
+                                        {fileItem.status === 'processing' && 'Processing...'}
+                                        {fileItem.status === 'ready' && 'Ready'}
+                                        {fileItem.status === 'error' && 'Error'}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    {fileItem.status === 'ready' && (
+                                        <span className="flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-md">
+                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                            Ready
+                                        </span>
+                                    )}
+                                    <button
+                                        onClick={() => handleDelete(fileItem.id)}
+                                        className="text-muted-foreground hover:text-destructive transition-colors"
+                                    >
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-
-                    {/* File Item 2 - Scanning */}
-                    <div className="flex items-center p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                        <div className="p-3 bg-blue-50 rounded-lg mr-4">
-                            <ImageIcon className="w-6 h-6 text-blue-500" />
-                        </div>
-                        <div className="flex-1">
-                            <h5 className="font-bold text-gray-900 text-sm">Prescription_Dr._Smith.jpg</h5>
-                            <p className="text-xs text-gray-400">840 KB • Processing...</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <span className="flex items-center gap-1.5 text-xs font-bold text-teal-600 bg-teal-50 px-2.5 py-1 rounded-md animate-pulse">
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                Scanning
-                            </span>
-                            <button className="text-gray-400 hover:text-red-500 transition-colors">
-                                <Trash2 className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-
                 </div>
-            </div>
+            )}
 
-            <div className="flex justify-center pt-4">
-                <button className="w-full max-w-md bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold py-3.5 rounded-lg shadow-lg shadow-green-500/20 transition-all transform active:scale-[0.98]">
-                    Process Records
-                </button>
-            </div>
-
+            {uploadedFiles.length === 0 && (
+                <div className="text-center py-8">
+                    <p className="text-muted-foreground">No files uploaded yet. Upload your medical records to get started.</p>
+                </div>
+            )}
         </div>
     );
 }

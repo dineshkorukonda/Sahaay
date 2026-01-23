@@ -3,6 +3,7 @@
 import React from "react";
 import { Bell, Flame, Medal, CheckCircle2, MessageSquare } from "lucide-react";
 import Image from "next/image";
+import { Loader } from "@/components/ui/loader";
 
 export default function DashboardPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,7 +28,7 @@ export default function DashboardPage() {
     }, []);
 
     if (loading) {
-        return <div className="p-8 flex items-center justify-center min-h-screen">Loading...</div>;
+        return <Loader fullScreen text="Loading dashboard..." />;
     }
 
     const { user, profile, stats, actions } = data || {};
@@ -71,7 +72,11 @@ export default function DashboardPage() {
                 <div className="lg:col-span-2 space-y-6">
                     <div className="space-y-2">
                         <h2 className="text-4xl font-bold tracking-tight text-foreground">Good Morning, {userName}</h2>
-                        <p className="text-muted-foreground text-lg">You&apos;re on a {stats?.streak}-day streak! Keep up the great work and stay healthy.</p>
+                        {stats?.streak ? (
+                            <p className="text-muted-foreground text-lg">You&apos;re on a {stats.streak}-day streak! Keep up the great work and stay healthy.</p>
+                        ) : (
+                            <p className="text-muted-foreground text-lg">Welcome to your health dashboard. Start tracking your health journey today.</p>
+                        )}
                     </div>
 
                     <div className="flex gap-4">
@@ -94,104 +99,94 @@ export default function DashboardPage() {
 
                         <div className="space-y-4">
                             {/* Actions List from API */}
-                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                            {actions?.map((action: any) => (
-                                <div key={action.id} className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-border/40">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${action.type === 'medication' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
-                                            <span className="text-2xl">{action.type === 'medication' ? '💊' : '😐'}</span>
+                            {actions && actions.length > 0 ? (
+                                actions.map((action: any) => (
+                                    <div key={action.id} className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-border/40">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${action.type === 'medication' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                <span className="text-2xl">{action.type === 'medication' ? '💊' : '😐'}</span>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-foreground">{action.title}</h4>
+                                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                    {action.time && <><span className="w-1.5 h-1.5 rounded-full bg-primary"></span> {action.time}</>}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h4 className="font-bold text-foreground">{action.title}</h4>
-                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                                {action.time && <><span className="w-1.5 h-1.5 rounded-full bg-primary"></span> {action.time}</>}
-                                            </p>
-                                        </div>
+                                        <button className="bg-primary text-primary-foreground px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-md shadow-primary/20 hover:bg-primary/90 transition-colors">
+                                            <CheckCircle2 className="h-4 w-4" /> Log
+                                        </button>
                                     </div>
-                                    <button className="bg-primary text-primary-foreground px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-md shadow-primary/20 hover:bg-primary/90 transition-colors">
-                                        <CheckCircle2 className="h-4 w-4" /> Log
-                                    </button>
+                                ))
+                            ) : (
+                                <div className="bg-white rounded-2xl p-8 text-center border border-border/40">
+                                    <p className="text-muted-foreground">No actions scheduled for today. Check back later or add a care plan.</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
                 </div>
 
                 {/* Right Column Stats */}
                 <div className="space-y-6">
-                    {/* Streak Card */}
-                    <div className="bg-[#E3F5EE] rounded-3xl p-6 relative overflow-hidden">
-                        <div className="relative z-10">
-                            <p className="text-primary font-medium mb-1">Current Streak</p>
-                            <p className="text-4xl font-bold text-foreground">{stats?.streak} Days</p>
-                        </div>
-                        <div className="absolute top-6 right-6 h-12 w-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
-                            <Flame className="h-6 w-6 fill-current" />
-                        </div>
-                    </div>
-
-                    {/* Points Card */}
-                    <div className="bg-[#E3F5EE] rounded-3xl p-6 relative overflow-hidden">
-                        <div className="relative z-10">
-                            <p className="text-primary font-medium mb-1">Health Points</p>
-                            <p className="text-4xl font-bold text-foreground">{stats?.points}</p>
-                        </div>
-                        <div className="absolute top-6 right-6 h-12 w-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
-                            <Medal className="h-6 w-6 fill-current" />
-                        </div>
-                    </div>
-
-                    {/* Vitals Card */}
-                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/40">
-                        <h3 className="font-bold text-lg mb-6">Recent Vitals</h3>
-
-                        <div className="flex justify-between mb-8">
-                            <div>
-                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Blood Pressure</p>
-                                <p className="text-2xl font-bold text-foreground">{stats?.vitals?.bp}</p>
-                                <p className="text-[10px] font-bold text-primary mt-1">NORMAL</p>
+                    {/* Streak Card - Only show if stats exist */}
+                    {stats && (
+                        <>
+                            <div className="bg-[#E3F5EE] rounded-3xl p-6 relative overflow-hidden">
+                                <div className="relative z-10">
+                                    <p className="text-primary font-medium mb-1">Current Streak</p>
+                                    <p className="text-4xl font-bold text-foreground">{stats.streak || 0} Days</p>
+                                </div>
+                                <div className="absolute top-6 right-6 h-12 w-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
+                                    <Flame className="h-6 w-6 fill-current" />
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Heart Rate</p>
-                                <p className="text-2xl font-bold text-foreground">{stats?.vitals?.hr} <span className="text-sm text-muted-foreground font-medium">bpm</span></p>
-                                <p className="text-[10px] font-bold text-primary mt-1">STABLE</p>
+
+                            {/* Points Card */}
+                            <div className="bg-[#E3F5EE] rounded-3xl p-6 relative overflow-hidden">
+                                <div className="relative z-10">
+                                    <p className="text-primary font-medium mb-1">Health Points</p>
+                                    <p className="text-4xl font-bold text-foreground">{stats.points || 0}</p>
+                                </div>
+                                <div className="absolute top-6 right-6 h-12 w-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
+                                    <Medal className="h-6 w-6 fill-current" />
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Chart Mock */}
-                        <div className="h-24 flex items-end justify-between gap-2 px-2">
-                            <div className="w-full bg-emerald-100 rounded-t-sm h-[40%] relative group"></div>
-                            <div className="w-full bg-emerald-200 rounded-t-sm h-[60%]"></div>
-                            <div className="w-full bg-emerald-300 rounded-t-sm h-[30%]"></div>
-                            <div className="w-full bg-emerald-400 rounded-t-sm h-[75%]"></div>
-                            <div className="w-full bg-emerald-300 rounded-t-sm h-[50%]"></div>
-                            <div className="w-full bg-emerald-400 rounded-t-sm h-[80%]"></div>
-                            <div className="w-full bg-primary rounded-t-sm h-[95%] shadow-lg shadow-primary/20"></div>
-                        </div>
-                        <p className="text-center text-xs font-bold text-primary mt-4">Full Bio-metrics Analytics</p>
-                    </div>
+                            {/* Vitals Card - Only show if vitals exist */}
+                            {stats.vitals && (stats.vitals.bp || stats.vitals.hr) && (
+                                <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/40">
+                                    <h3 className="font-bold text-lg mb-6">Recent Vitals</h3>
 
-                    {/* Family Card */}
+                                    <div className="flex justify-between mb-8">
+                                        {stats.vitals.bp && (
+                                            <div>
+                                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Blood Pressure</p>
+                                                <p className="text-2xl font-bold text-foreground">{stats.vitals.bp}</p>
+                                            </div>
+                                        )}
+                                        {stats.vitals.hr && (
+                                            <div>
+                                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Heart Rate</p>
+                                                <p className="text-2xl font-bold text-foreground">{stats.vitals.hr} <span className="text-sm text-muted-foreground font-medium">bpm</span></p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    {/* Family Card - Removed dummy data */}
                     <div className="bg-[#1C211E] rounded-3xl p-6 text-white relative overflow-hidden">
                         <div className="relative z-10">
                             <h3 className="font-bold text-lg mb-2">Connect with Family</h3>
-                            <p className="text-gray-400 text-sm mb-6 leading-relaxed">Your daughter, Sarah, just updated the care notes.</p>
+                            <p className="text-gray-400 text-sm mb-6 leading-relaxed">Add family members to share health information and care plans.</p>
 
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center -space-x-3">
-                                    <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100&h=100" alt="Sarah" className="h-10 w-10 rounded-full border-2 border-[#1C211E] object-cover" />
-                                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=100&h=100" alt="Son" className="h-10 w-10 rounded-full border-2 border-[#1C211E] object-cover" />
-                                    <div className="h-10 w-10 rounded-full border-2 border-[#1C211E] bg-white text-[#1C211E] flex items-center justify-center text-xs font-bold pl-1">
-                                        +3
-                                    </div>
-                                </div>
-
-                                <button className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
-                                    <MessageSquare className="h-5 w-5 fill-white/50 text-white" />
-                                </button>
-                            </div>
+                            <button className="w-full bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-semibold transition-colors">
+                                Add Family Member
+                            </button>
                         </div>
-                        {/* Abstract shape */}
                         <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
                     </div>
 

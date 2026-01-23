@@ -21,18 +21,37 @@ export async function POST(req: Request) {
 
         const data = await req.json();
 
+        // Build update object dynamically
+        const updateData: any = {};
+        
+        if (data.dob !== undefined) updateData.dob = data.dob;
+        if (data.gender !== undefined) updateData.gender = data.gender;
+        if (data.pinCode !== undefined) updateData.pinCode = data.pinCode;
+        
+        // Handle location data
+        if (data.location) {
+            updateData.location = {
+                pinCode: data.location.pinCode || data.pinCode,
+                city: data.location.city,
+                state: data.location.state,
+                latitude: data.location.latitude,
+                longitude: data.location.longitude
+            };
+        }
+
         // Upsert Profile
         const profile = await Profile.findOneAndUpdate(
             { userId },
-            {
-                $set: {
-                    dob: data.dob,
-                    gender: data.gender,
-                    // If location was part of profile, add here. Currently handled in component logic but could be stored.
-                }
-            },
+            { $set: updateData },
             { new: true, upsert: true }
         );
+
+        console.log('Profile updated:', {
+            userId,
+            hasLocation: !!profile?.location?.pinCode,
+            locationPinCode: profile?.location?.pinCode,
+            updateData
+        });
 
         return NextResponse.json({ success: true, profile });
     } catch (error: unknown) {

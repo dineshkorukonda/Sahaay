@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import { User } from '@/lib/models';
+import { User, Profile } from '@/lib/models';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { cookies } from 'next/headers';
@@ -12,15 +12,26 @@ const JWT_SECRET = new TextEncoder().encode(
 export async function POST(req: Request) {
     try {
         await connectDB();
-        const { mobile, password } = await req.json();
+        const { email, password } = await req.json();
 
-        if (!mobile || !password) {
-            return NextResponse.json({ error: 'Mobile and password are required' }, { status: 400 });
+        if (!email || !password) {
+            return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
         }
 
-        const user = await User.findOne({ mobile });
+        // Try to find user by email first, then by mobile if email doesn't match
+        let user = await User.findOne({ email });
+        if (!user) {
+            // Try mobile as fallback
+            user = await User.findOne({ mobile: email });
+        }
+
         if (!user) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+        }
+
+        // Check if email is verified (for email-based accounts)
+        if (user.email && !user.isEmailVerified) {
+            return NextResponse.json({ error: 'Please verify your email first. Check your inbox for OTP.' }, { status: 401 });
         }
 
         if (!user.password) {
@@ -33,7 +44,10 @@ export async function POST(req: Request) {
         }
 
         // Create JWT
-        const token = await new SignJWT({ userId: user._id.toString(), mobile: user.mobile })
+        const token = await new SignJWT({ 
+            userId: user._id.toString(), 
+            email: user.email || user.mobile 
+        })
             .setProtectedHeader({ alg: 'HS256' })
             .setIssuedAt()
             .setExpirationTime('7d')
@@ -48,7 +62,46 @@ export async function POST(req: Request) {
             maxAge: 60 * 60 * 24 * 7, // 7 days
         });
 
-        return NextResponse.json({ success: true, user: { id: user._id, name: user.name, mobile: user.mobile } }, { status: 200 });
+        // Check if user has completed onboarding (has a profile with essential data)
+        const profile = await Profile.findOne({ userId: user._id });
+        const hasCompletedOnboarding = !!profile && 
+            !!profile.dob && 
+            !!profile.location?.pinCode && 
+            !!profile.emergencyContact;
+
+        // Add detailed logging for debugging
+        console.log('Login Debug:', {
+            email: user.email,
+            userId: user._id.toString(),
+            hasProfile: !!profile,
+            profileData: profile ? {
+                dob: profile.dob,
+                hasLocation: !!profile.location?.pinCode,
+                locationPinCode: profile.location?.pinCode,
+                hasEmergencyContact: !!profile.emergencyContact,
+                emergencyContact: profile.emergencyContact
+            } : null,
+            hasCompletedOnboarding
+        });
+
+        return NextResponse.json({ 
+            success: true, 
+            user: { 
+                id: user._id, 
+                name: user.name, 
+                email: user.email,
+                mobile: user.mobile 
+            },
+            hasCompletedOnboarding,
+            debug: {
+                hasProfile: !!profile,
+                profileCheck: {
+                    dob: !!profile?.dob,
+                    location: !!profile?.location?.pinCode,
+                    emergencyContact: !!profile?.emergencyContact
+                }
+            }
+        }, { status: 200 });
 
     } catch (error: unknown) {
         console.error('Login Error:', error);

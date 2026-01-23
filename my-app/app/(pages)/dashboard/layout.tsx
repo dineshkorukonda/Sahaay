@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 
 export default function DashboardLayout({
@@ -5,6 +9,25 @@ export default function DashboardLayout({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    const router = useRouter();
+
+    useEffect(() => {
+        const checkOnboarding = async () => {
+            try {
+                const res = await fetch('/api/auth/onboarding-status');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!data.hasCompletedOnboarding) {
+                        router.push('/onboarding');
+                    }
+                }
+            } catch (err) {
+                console.error('Error checking onboarding:', err);
+            }
+        };
+        checkOnboarding();
+    }, [router]);
+
     return (
         <div className="flex min-h-screen bg-background">
             <Sidebar />

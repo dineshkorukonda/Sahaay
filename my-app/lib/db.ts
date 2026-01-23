@@ -1,9 +1,10 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.DB_URL;
+// Support both B_URL and DB_URL for flexibility
+const MONGODB_URI = process.env.B_URL || process.env.DB_URL;
 
 if (!MONGODB_URI) {
-    throw new Error('Please define the DB_URL environment variable inside .env');
+    throw new Error('Please define the B_URL or DB_URL environment variable inside .env');
 }
 
 /**
@@ -38,9 +39,9 @@ async function connectDB() {
             bufferCommands: false,
         };
 
-        cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
+        cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongooseInstance) => {
             console.log('MongoDB Connected');
-            return mongoose;
+            return mongooseInstance;
         });
     }
 

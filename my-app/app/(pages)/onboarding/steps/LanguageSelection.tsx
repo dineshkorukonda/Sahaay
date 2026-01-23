@@ -11,13 +11,11 @@ interface LanguageSelectionProps {
 const languages = [
   { id: "en", name: "English", sub: "Standard English", icon: Languages },
   { id: "hi", name: "Hindi", sub: "हिन्दी", icon: Globe },
-  { id: "mr", name: "Marathi", sub: "मराठी", icon: Globe },
-  { id: "gu", name: "Gujarati", sub: "ગુજરાતી", icon: Globe },
-  { id: "ta", name: "Tamil", sub: "தமிழ்", icon: Globe },
-  { id: "bn", name: "Bengali", sub: "বাংলা", icon: Globe },
 ];
 
 export default function LanguageSelection({ selectedLanguage, onSelect }: LanguageSelectionProps) {
+  const defaultLang = selectedLanguage || "English";
+  
   return (
     <div className="w-full max-w-4xl mx-auto">
       <div className="text-center mb-10">
@@ -27,9 +25,9 @@ export default function LanguageSelection({ selectedLanguage, onSelect }: Langua
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
         {languages.map((lang) => {
-          const isSelected = selectedLanguage === lang.name;
+          const isSelected = defaultLang === lang.name || defaultLang === lang.id;
           const Icon = lang.icon;
 
           return (
@@ -62,6 +60,12 @@ export default function LanguageSelection({ selectedLanguage, onSelect }: Langua
             </button>
           );
         })}
+      </div>
+
+      <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+        <p className="text-sm text-blue-800 text-center">
+          <strong>Note:</strong> Other languages will be supported soon.
+        </p>
       </div>
     </div>
   );

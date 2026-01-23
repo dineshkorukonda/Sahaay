@@ -57,8 +57,8 @@ export default function ProfileSetup() {
     return (
         <div className="w-full max-w-2xl mx-auto">
             <div className="text-center mb-10">
-                <h2 className="text-3xl font-bold text-blue-900 mb-2">Complete Your Profile</h2>
-                <p className="text-gray-500">
+                <h2 className="text-3xl font-serif font-medium text-foreground mb-2">Complete Your Profile</h2>
+                <p className="text-muted-foreground">
                     Personalize your healthcare journey with Sahaay.
                 </p>
             </div>
@@ -67,8 +67,8 @@ export default function ProfileSetup() {
                 {/* Full Name */}
                 <div>
                     <div className="flex justify-between items-center mb-1">
-                        <label className="text-sm font-semibold text-blue-900">Full Name</label>
-                        <span className="text-xs text-gray-400 uppercase">Optional</span>
+                        <label className="text-sm font-semibold text-foreground">Full Name</label>
+                        <span className="text-xs text-muted-foreground uppercase">Optional</span>
                     </div>
                     <input
                         type="text"
@@ -76,13 +76,15 @@ export default function ProfileSetup() {
                         value={formData.name}
                         onChange={(e) => handleChange('name', e.target.value)}
                         onBlur={handleBlur}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent"
+                        className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                 </div>
 
                 {/* Date of Birth */}
                 <div>
-                    <label className="block text-sm font-semibold text-blue-900 mb-1">Date of Birth</label>
+                    <label className="block text-sm font-semibold text-foreground mb-1">
+                        Date of Birth <span className="text-red-500">*</span>
+                    </label>
                     <div className="relative">
                         <input
                             type="date"
@@ -90,15 +92,18 @@ export default function ProfileSetup() {
                             value={formData.dob}
                             onChange={(e) => handleChange('dob', e.target.value)}
                             onBlur={handleBlur}
-                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent"
+                            required
+                            className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                         />
-                        <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                        <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
                     </div>
                 </div>
 
                 {/* Gender */}
                 <div>
-                    <label className="block text-sm font-semibold text-blue-900 mb-2">Gender</label>
+                    <label className="block text-sm font-semibold text-foreground mb-2">
+                        Gender <span className="text-red-500">*</span>
+                    </label>
                     <div className="grid grid-cols-3 gap-4">
                         {["Male", "Female", "Other"].map((gender) => (
                             <label key={gender} className="cursor-pointer">
@@ -108,16 +113,18 @@ export default function ProfileSetup() {
                                     className="peer sr-only"
                                     value={gender}
                                     checked={formData.gender === gender}
+                                    required
                                     onChange={(e) => {
                                         handleChange('gender', e.target.value);
                                         // Specific trigger for radio since it doesn't blur effectively
                                         fetch('/api/onboarding/profile', {
                                             method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ ...formData, gender: e.target.value }),
                                         });
                                     }}
                                 />
-                                <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-gray-100 bg-white hover:border-green-200 peer-checked:border-[#22c55e] peer-checked:text-[#22c55e] transition-all">
+                                <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-border bg-card hover:border-primary/50 peer-checked:border-primary peer-checked:text-primary transition-all">
                                     {/* Placeholder Icons */}
                                     <span className="mb-2 text-2xl">
                                         {gender === "Male" ? "♂" : gender === "Female" ? "♀" : "⚦"}
@@ -127,25 +134,6 @@ export default function ProfileSetup() {
                             </label>
                         ))}
                     </div>
-                </div>
-
-                {/* Location Access */}
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
-                    <div className="flex items-start gap-4 mb-4">
-                        <div className="p-2 bg-white rounded-full shadow-sm">
-                            <MapPin className="w-6 h-6 text-[#22c55e]" />
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-blue-900">Location Access</h4>
-                            <p className="text-sm text-gray-500 mt-1">
-                                We use your location to find the nearest doctors and pharmacies in your network.
-                            </p>
-                        </div>
-                    </div>
-                    <button className="w-full py-3 border-2 border-[#22c55e] text-[#22c55e] font-semibold rounded-lg hover:bg-green-50 transition-colors flex items-center justify-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Enable My Location
-                    </button>
                 </div>
             </div>
         </div>

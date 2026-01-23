@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { ArrowLeft, ArrowRight, HelpCircle, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BriefcaseMedical } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 
 // Steps
 import LanguageSelection from "./steps/LanguageSelection";
 import ProfileSetup from "./steps/ProfileSetup";
+import LocationSetup from "./steps/LocationSetup";
 import EmergencyInfo from "./steps/EmergencyInfo";
 import FamilySetup from "./steps/FamilySetup";
 import RecordsUpload from "./steps/RecordsUpload";
@@ -17,9 +19,119 @@ import RecordsUpload from "./steps/RecordsUpload";
 export default function OnboardingPage() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(1);
-    const totalSteps = 5;
+    const [hasRecords, setHasRecords] = useState(false);
+    const totalSteps = 5; // Language, Profile, Location, Emergency, Family
 
-    const [selectedLanguage, setSelectedLanguage] = useState("English");
+    const [selectedLanguage, setSelectedLanguage] = useState("English"); // Default to English
+
+    // Load saved step from localStorage and check profile progress on mount
+    useEffect(() => {
+        const loadStep = async () => {
+            try {
+                // Check profile to determine which step user should be on
+                const res = await fetch('/api/dashboard/home');
+                if (res.ok) {
+                    const data = await res.json();
+                    const profile = data.data?.profile;
+                    
+                    if (profile) {
+                        // Determine step based on what's completed
+                        if (!profile.dob) {
+                            setCurrentStep(2); // Profile setup
+                        } else if (!profile.location?.pinCode) {
+                            setCurrentStep(3); // Location setup
+                        } else if (!profile.emergencyContact) {
+                            setCurrentStep(4); // Emergency info
+                        } else {
+                            // All required fields complete, check saved step or default to 5 (Family)
+                            const savedStep = localStorage.getItem('onboarding_step');
+                            if (savedStep) {
+                                const step = parseInt(savedStep, 10);
+                                if (step >= 1 && step <= totalSteps) {
+                                    setCurrentStep(step);
+                                } else {
+                                    setCurrentStep(5); // Default to Family step
+                                }
+                            } else {
+                                setCurrentStep(5); // Default to Family step
+                            }
+                        }
+                    } else {
+                        // No profile, check saved step
+                        const savedStep = localStorage.getItem('onboarding_step');
+                        if (savedStep) {
+                            const step = parseInt(savedStep, 10);
+                            if (step >= 1 && step <= totalSteps) {
+                                setCurrentStep(step);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading step:', err);
+                // Fallback to saved step
+                const savedStep = localStorage.getItem('onboarding_step');
+                if (savedStep) {
+                    const step = parseInt(savedStep, 10);
+                    if (step >= 1 && step <= totalSteps) {
+                        setCurrentStep(step);
+                    }
+                }
+            }
+        };
+        loadStep();
+    }, [totalSteps]);
+
+    // Save current step to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem('onboarding_step', currentStep.toString());
+    }, [currentStep]);
+
+    const [checkingStatus, setCheckingStatus] = useState(true);
+
+    // Check if user has already completed onboarding and redirect to dashboard
+    useEffect(() => {
+        const checkOnboardingStatus = async () => {
+            try {
+                const res = await fetch('/api/auth/onboarding-status');
+                if (res.ok) {
+                    const data = await res.json();
+                    // If onboarding is complete, redirect to dashboard
+                    if (data.hasCompletedOnboarding) {
+                        console.log('Onboarding already complete, redirecting to dashboard');
+                        localStorage.removeItem('onboarding_step'); // Clear saved step
+                        router.push('/dashboard');
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.error('Error checking onboarding status:', err);
+            } finally {
+                setCheckingStatus(false);
+            }
+        };
+        checkOnboardingStatus();
+    }, [router]);
+
+    // Check for existing records when reaching final step
+    useEffect(() => {
+        if (currentStep === totalSteps) {
+            const checkRecords = async () => {
+                try {
+                    const res = await fetch('/api/dashboard/home');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.data?.records && data.data.records.length > 0) {
+                            setHasRecords(true);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error checking records:', err);
+                }
+            };
+            checkRecords();
+        }
+    }, [currentStep, totalSteps]);
 
     const nextStep = () => {
         if (currentStep < totalSteps) setCurrentStep(currentStep + 1);
@@ -33,9 +145,9 @@ export default function OnboardingPage() {
         switch (currentStep) {
             case 1: return "Language Selection";
             case 2: return "Profile Creation";
-            case 3: return "Emergency Details";
-            case 4: return "Family Setup";
-            case 5: return "Medical Records Upload";
+            case 3: return "Location Setup";
+            case 4: return "Emergency Details";
+            case 5: return "Family Setup";
             default: return "";
         }
     };
@@ -47,33 +159,22 @@ export default function OnboardingPage() {
             case 2:
                 return <ProfileSetup />;
             case 3:
-                return <EmergencyInfo />;
+                return <LocationSetup />;
             case 4:
-                return <FamilySetup />;
+                return <EmergencyInfo />;
             case 5:
-                return <RecordsUpload />;
+                return <FamilySetup />;
             default:
                 return null;
         }
     };
 
+    if (checkingStatus) {
+        return <Loader fullScreen text="Checking onboarding status..." />;
+    }
+
     return (
-        <div className="min-h-screen bg-[#f8fafc] flex flex-col">
-            {/* Navbar */}
-            <nav className="bg-white border-b border-gray-100 py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 z-50">
-                <div className="flex items-center space-x-2">
-                    <div className="p-1.5 bg-[#22c55e] rounded-lg">
-                        <BriefcaseMedical className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="text-xl font-bold text-gray-900 tracking-tight">Sahaay</span>
-                </div>
-                <div className="flex items-center gap-6">
-                    <Link href="#" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Dashboard</Link>
-                    <Link href="#" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Profile</Link>
-                    <Link href="#" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Settings</Link>
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-green-400 to-teal-500 border border-white shadow-sm" />
-                </div>
-            </nav>
+        <div className="min-h-screen bg-background flex flex-col">
 
             <main className="flex-1 max-w-5xl mx-auto w-full p-6 md:p-12 flex flex-col">
 
@@ -81,15 +182,15 @@ export default function OnboardingPage() {
                 <div className="mb-12">
                     <div className="flex justify-between items-end mb-4">
                         <div>
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Step {currentStep} of {totalSteps}</span>
-                            <h1 className="text-xl font-bold text-gray-900 mt-1">{getStepTitle()}</h1>
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Step {currentStep} of {totalSteps}</span>
+                            <h1 className="text-xl font-serif font-medium text-foreground mt-1">{getStepTitle()}</h1>
                         </div>
-                        <span className="text-sm font-bold text-gray-500">{Math.round((currentStep / totalSteps) * 100)}% Complete</span>
+                        <span className="text-sm font-semibold text-muted-foreground">{Math.round((currentStep / totalSteps) * 100)}% Complete</span>
                     </div>
                     {/* Progress Bar Container */}
-                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                         <div
-                            className="h-full bg-gradient-to-r from-teal-500 to-[#22c55e] rounded-full transition-all duration-500 ease-out"
+                            className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${(currentStep / totalSteps) * 100}%` }}
                         />
                     </div>
@@ -101,13 +202,13 @@ export default function OnboardingPage() {
                 </div>
 
                 {/* Navigation Footer */}
-                <div className="mt-12 pt-8 border-t border-gray-100 flex justify-between items-center">
+                <div className="mt-12 pt-8 border-t border-border flex justify-between items-center">
                     <button
                         onClick={prevStep}
                         disabled={currentStep === 1}
-                        className={`flex items-center gap-2 font-bold px-6 py-3 rounded-lg transition-colors ${currentStep === 1
-                            ? "text-gray-300 cursor-not-allowed"
-                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                        className={`flex items-center gap-2 font-semibold px-6 py-3 rounded-lg transition-colors ${currentStep === 1
+                            ? "text-muted-foreground/50 cursor-not-allowed"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
                             }`}
                     >
                         <ArrowLeft className="w-4 h-4" />
@@ -118,15 +219,34 @@ export default function OnboardingPage() {
                     {currentStep < totalSteps ? (
                         <button
                             onClick={nextStep}
-                            className="bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold py-3 px-8 rounded-lg shadow-lg shadow-green-500/20 transition-all transform active:scale-[0.98] flex items-center gap-2"
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-lg shadow-lg shadow-primary/20 transition-all transform active:scale-[0.98] flex items-center gap-2"
                         >
                             {currentStep === 1 ? "Get Started" : "Continue"}
                             <ArrowRight className="w-4 h-4" />
                         </button>
                     ) : (
                         <button
-                            onClick={() => router.push('/dashboard')}
-                            className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg shadow-teal-500/20 transition-all transform active:scale-[0.98] flex items-center gap-2"
+                            onClick={async () => {
+                                // Clear saved step
+                                localStorage.removeItem('onboarding_step');
+                                // Check onboarding status one more time before redirecting
+                                try {
+                                    const res = await fetch('/api/auth/onboarding-status');
+                                    if (res.ok) {
+                                        const data = await res.json();
+                                        if (data.hasCompletedOnboarding) {
+                                            router.push('/dashboard');
+                                        } else {
+                                            // If not complete, stay on onboarding but show message
+                                            alert('Please complete all required fields: Date of Birth, Location (PIN Code), and Emergency Contact');
+                                        }
+                                    }
+                                } catch (err) {
+                                    console.error('Error checking onboarding:', err);
+                                    router.push('/dashboard');
+                                }
+                            }}
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-lg shadow-lg shadow-primary/20 transition-all transform active:scale-[0.98] flex items-center gap-2"
                         >
                             Complete Setup
                         </button>
@@ -134,8 +254,8 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="text-center mt-12">
-                    <p className="text-xs text-gray-400">
-                        © 2024 Sahaay Healthcare Systems. All medical data is encrypted and secure.
+                    <p className="text-xs text-muted-foreground">
+                        © 2026 Sahaay Platform. All medical data is encrypted and secure.
                         <br />
                         <span className="mx-2">Privacy Policy</span> • <span className="mx-2">Terms of Service</span> • <span className="mx-2">HIPAA Compliance</span>
                     </p>

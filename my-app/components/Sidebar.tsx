@@ -13,6 +13,7 @@ import {
     HeartPulse,
     Syringe,
     AlertTriangle,
+    LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +40,7 @@ export function Sidebar() {
                     </div>
                     <div className="flex flex-col">
                         <span className="font-bold text-lg text-sidebar-foreground leading-tight">
-                            CareConnect
+                            Sahaay
                         </span>
                         <span className="text-xs text-muted-foreground font-medium">
                             Medical Intelligence
@@ -69,10 +70,31 @@ export function Sidebar() {
                 </nav>
             </div>
 
-            <div className="mt-auto p-6">
+            <div className="mt-auto p-6 space-y-3">
                 <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-destructive px-4 py-4 text-sm font-bold text-white shadow-lg shadow-destructive/20 hover:bg-destructive/90 transition-all active:scale-95 cursor-pointer">
                     <AlertTriangle className="h-5 w-5 fill-white text-white" />
                     Emergency SOS
+                </button>
+                <button 
+                    onClick={async () => {
+                        try {
+                            const res = await fetch('/api/auth/logout', {
+                                method: 'POST'
+                            });
+                            if (res.ok) {
+                                window.location.href = '/auth/login';
+                            } else {
+                                alert('Logout failed. Please try again.');
+                            }
+                        } catch (err) {
+                            console.error('Logout error:', err);
+                            alert('Logout failed. Please try again.');
+                        }
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-gray-100 px-4 py-3 text-sm font-bold text-gray-700 hover:bg-gray-200 transition-all active:scale-95 cursor-pointer"
+                >
+                    <LogOut className="h-5 w-5" />
+                    Logout
                 </button>
             </div>
         </div>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import { User, Profile, MedicalRecord } from '@/lib/models';
+import { User, Profile, MedicalRecord, HealthStats, CarePlan } from '@/lib/models';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -19,27 +19,54 @@ export async function GET(req: Request) {
         const { payload } = await jwtVerify(token, JWT_SECRET);
         const userId = payload.userId as string;
 
-        const [user, profile, records] = await Promise.all([
+        const [user, profile, records, healthStats, carePlan] = await Promise.all([
             User.findById(userId).select('name mobile email'),
             Profile.findOne({ userId }),
-            MedicalRecord.find({ userId }).sort({ analyzedAt: -1 }).limit(5)
+            MedicalRecord.find({ userId }).sort({ analyzedAt: -1 }).limit(5),
+            HealthStats.findOne({ userId }),
+            CarePlan.findOne({ userId }).sort({ updatedAt: -1 })
         ]);
 
-        // Mock Stats for the dashboard (Streak, Points - typically would be in another model)
-        const stats = {
-            streak: 7, // mock
-            points: 1250, // mock
+        // Use real stats or return null if no data
+        const stats = healthStats ? {
+            streak: healthStats.streak || 0,
+            points: healthStats.points || 0,
             vitals: {
-                bp: "120/80",
-                hr: "72"
+                bp: healthStats.vitals?.bp || null,
+                hr: healthStats.vitals?.hr || null
             }
-        };
+        } : null;
 
-        // Mock Actions
-        const actions = [
-            { id: 1, title: "Lisinopril - 10mg", type: "medication", time: "08:00 AM", status: "pending" },
-            { id: 2, title: "Daily Symptom Check", type: "checkup", status: "pending" }
-        ];
+        // Get actions from care plan only (no dummy data)
+        const actions = [];
+        if (carePlan) {
+            if (carePlan.medications) {
+                carePlan.medications.forEach((med, index) => {
+                    if (med.status === 'pending') {
+                        actions.push({
+                            id: `med-${index}`,
+                            title: `${med.name} - ${med.dosage}`,
+                            type: "medication",
+                            time: med.time || "08:00 AM",
+                            status: med.status
+                        });
+                    }
+                });
+            }
+            if (carePlan.checkups) {
+                carePlan.checkups.forEach((checkup, index) => {
+                    if (checkup.status === 'pending') {
+                        actions.push({
+                            id: `checkup-${index}`,
+                            title: checkup.title,
+                            type: "checkup",
+                            time: checkup.time || "10:00 AM",
+                            status: checkup.status
+                        });
+                    }
+                });
+            }
+        }
 
         return NextResponse.json({
             success: true,
