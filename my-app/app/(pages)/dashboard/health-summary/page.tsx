@@ -214,7 +214,7 @@ export default function HealthSummaryPage() {
                         <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
                             <p className="text-xs font-bold text-emerald-600 mb-2 uppercase tracking-wide">Kidney Function</p>
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                                John's GFR has dropped to 48 ml/min. This indicates Stage 3 Chronic Kidney Disease. This matters because it requires adjustment of his Metformin dosage.
+                                John&apos;s GFR has dropped to 48 ml/min. This indicates Stage 3 Chronic Kidney Disease. This matters because it requires adjustment of his Metformin dosage.
                             </p>
                         </div>
 
@@ -228,7 +228,7 @@ export default function HealthSummaryPage() {
                         <div className="bg-white rounded-xl p-4 shadow-sm">
                             <p className="text-xs font-bold text-emerald-600 mb-2 uppercase tracking-wide">Diagnostic Gap</p>
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                                AI detected mentions of "peripheral neuropathy" in imaging notes, but no formal diagnosis is recorded. Screening recommended.
+                                AI detected mentions of &quot;peripheral neuropathy&quot; in imaging notes, but no formal diagnosis is recorded. Screening recommended.
                             </p>
                         </div>
 

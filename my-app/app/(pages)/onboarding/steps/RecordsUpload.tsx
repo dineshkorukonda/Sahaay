@@ -14,16 +14,46 @@ export default function RecordsUpload() {
             </div>
 
             {/* Upload Zone */}
-            <div className="border-2 border-dashed border-[#22c55e]/30 bg-green-50/30 rounded-3xl p-10 text-center hover:bg-green-50/50 hover:border-[#22c55e]/50 transition-all cursor-pointer group">
+            <label className="block border-2 border-dashed border-[#22c55e]/30 bg-green-50/30 rounded-3xl p-10 text-center hover:bg-green-50/50 hover:border-[#22c55e]/50 transition-all cursor-pointer group">
+                <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.jpg,.png,.jpeg"
+                    onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        try {
+                            // In a real app, update UI to show 'scanning' state
+                            alert("Scanning " + file.name + "...");
+                            const res = await fetch('/api/analyze-pdf', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                                alert("Analysis Complete: " + data.data.diseaseName);
+                            } else {
+                                alert("Analysis Failed: " + data.error);
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert("Upload failed");
+                        }
+                    }}
+                />
                 <div className="w-16 h-16 bg-[#22c55e]/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                     <CloudUpload className="w-8 h-8 text-[#22c55e]" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 mb-1">Drag and drop files here</h3>
                 <p className="text-sm text-gray-400 mb-6">Supports PDF, JPG, PNG (Max 10MB per file)</p>
-                <button className="bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold py-2.5 px-6 rounded-lg shadow-lg shadow-green-500/20 transition-all active:scale-95">
+                <div className="bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold py-2.5 px-6 rounded-lg shadow-lg shadow-green-500/20 transition-all active:scale-95 inline-block">
                     Upload from Device
-                </button>
-            </div>
+                </div>
+            </label>
 
             {/* Recently Added List */}
             <div>

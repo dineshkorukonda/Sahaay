@@ -1,9 +1,38 @@
 "use client";
 
-import { Bell, Flame, Medal, CheckCircle2, Circle, ChevronRight, MessageSquare, MoreHorizontal } from "lucide-react";
+import React from "react";
+import { Bell, Flame, Medal, CheckCircle2, MessageSquare } from "lucide-react";
 import Image from "next/image";
 
 export default function DashboardPage() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [data, setData] = React.useState<any>(null);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const res = await fetch('/api/dashboard/home');
+                const json = await res.json();
+                if (json.success) {
+                    setData(json.data);
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    if (loading) {
+        return <div className="p-8 flex items-center justify-center min-h-screen">Loading...</div>;
+    }
+
+    const { user, profile, stats, actions } = data || {};
+    const userName = user?.name || "User";
+
     return (
         <div className="p-8 min-h-screen space-y-8">
             {/* Header */}
@@ -26,8 +55,8 @@ export default function DashboardPage() {
                     </button>
                     <div className="flex items-center gap-3">
                         <div className="text-right">
-                            <p className="text-sm font-bold leading-none">Alex Johnson</p>
-                            <p className="text-xs text-muted-foreground pt-1">Patient ID: #8291</p>
+                            <p className="text-sm font-bold leading-none">{userName}</p>
+                            <p className="text-xs text-muted-foreground pt-1">Patient ID: #{user?._id?.toString().slice(-4)}</p>
                         </div>
                         <div className="h-10 w-10 rounded-full bg-emerald-100 overflow-hidden border border-white shadow-sm">
                             <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100&h=100" alt="Profile" className="h-full w-full object-cover" />
@@ -41,8 +70,8 @@ export default function DashboardPage() {
                 {/* Welcome Block */}
                 <div className="lg:col-span-2 space-y-6">
                     <div className="space-y-2">
-                        <h2 className="text-4xl font-bold tracking-tight text-foreground">Good Morning, Alex</h2>
-                        <p className="text-muted-foreground text-lg">You're on a 7-day streak! Keep up the great work and stay healthy.</p>
+                        <h2 className="text-4xl font-bold tracking-tight text-foreground">Good Morning, {userName}</h2>
+                        <p className="text-muted-foreground text-lg">You&apos;re on a {stats?.streak}-day streak! Keep up the great work and stay healthy.</p>
                     </div>
 
                     <div className="flex gap-4">
@@ -58,61 +87,32 @@ export default function DashboardPage() {
                     <div className="pt-8">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-xl font-bold flex items-center gap-2">
-                                <span className="text-primary">📅</span> Today's Actions
+                                <span className="text-primary">📅</span> Today&apos;s Actions
                             </h3>
                             <button className="text-sm font-semibold text-primary hover:underline">View Schedule</button>
                         </div>
 
                         <div className="space-y-4">
-                            {/* Action Item 1 */}
-                            <div className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-border/40">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                                        <span className="text-2xl">💊</span>
+                            {/* Actions List from API */}
+                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                            {actions?.map((action: any) => (
+                                <div key={action.id} className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-border/40">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${action.type === 'medication' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                                            <span className="text-2xl">{action.type === 'medication' ? '💊' : '😐'}</span>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-foreground">{action.title}</h4>
+                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                {action.time && <><span className="w-1.5 h-1.5 rounded-full bg-primary"></span> {action.time}</>}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="font-bold text-foreground">Lisinopril - 10mg</h4>
-                                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-primary"></span> 08:00 AM • Morning Dose
-                                        </p>
-                                    </div>
+                                    <button className="bg-primary text-primary-foreground px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-md shadow-primary/20 hover:bg-primary/90 transition-colors">
+                                        <CheckCircle2 className="h-4 w-4" /> Log
+                                    </button>
                                 </div>
-                                <button className="bg-primary text-primary-foreground px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-md shadow-primary/20 hover:bg-primary/90 transition-colors">
-                                    <CheckCircle2 className="h-4 w-4" /> Log Taken
-                                </button>
-                            </div>
-
-                            {/* Action Item 2 */}
-                            <div className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-border/40">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
-                                        <span className="text-2xl">😐</span>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-foreground">Daily Symptom Check</h4>
-                                        <p className="text-xs text-muted-foreground">How are you feeling today?</p>
-                                    </div>
-                                </div>
-                                <button className="bg-gray-100 text-foreground px-5 py-2 rounded-lg font-bold text-sm hover:bg-gray-200 transition-colors">
-                                    Log Status
-                                </button>
-                            </div>
-
-                            {/* Action Item 3 */}
-                            <div className="bg-white/60 rounded-2xl p-4 flex items-center justify-between border border-border/40">
-                                <div className="flex items-center gap-4 opacity-60">
-                                    <div className="h-12 w-12 rounded-xl bg-blue-50 text-blue-400 flex items-center justify-center">
-                                        <span className="text-2xl">💊</span>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-foreground">Metformin - 500mg</h4>
-                                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span> 08:00 PM • Evening Dose
-                                        </p>
-                                    </div>
-                                </div>
-                                <span className="text-sm font-medium text-muted-foreground px-4">Upcoming</span>
-                            </div>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -123,7 +123,7 @@ export default function DashboardPage() {
                     <div className="bg-[#E3F5EE] rounded-3xl p-6 relative overflow-hidden">
                         <div className="relative z-10">
                             <p className="text-primary font-medium mb-1">Current Streak</p>
-                            <p className="text-4xl font-bold text-foreground">7 Days</p>
+                            <p className="text-4xl font-bold text-foreground">{stats?.streak} Days</p>
                         </div>
                         <div className="absolute top-6 right-6 h-12 w-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
                             <Flame className="h-6 w-6 fill-current" />
@@ -134,7 +134,7 @@ export default function DashboardPage() {
                     <div className="bg-[#E3F5EE] rounded-3xl p-6 relative overflow-hidden">
                         <div className="relative z-10">
                             <p className="text-primary font-medium mb-1">Health Points</p>
-                            <p className="text-4xl font-bold text-foreground">1,250</p>
+                            <p className="text-4xl font-bold text-foreground">{stats?.points}</p>
                         </div>
                         <div className="absolute top-6 right-6 h-12 w-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
                             <Medal className="h-6 w-6 fill-current" />
@@ -148,12 +148,12 @@ export default function DashboardPage() {
                         <div className="flex justify-between mb-8">
                             <div>
                                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Blood Pressure</p>
-                                <p className="text-2xl font-bold text-foreground">120/80</p>
+                                <p className="text-2xl font-bold text-foreground">{stats?.vitals?.bp}</p>
                                 <p className="text-[10px] font-bold text-primary mt-1">NORMAL</p>
                             </div>
                             <div>
                                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Heart Rate</p>
-                                <p className="text-2xl font-bold text-foreground">72 <span className="text-sm text-muted-foreground font-medium">bpm</span></p>
+                                <p className="text-2xl font-bold text-foreground">{stats?.vitals?.hr} <span className="text-sm text-muted-foreground font-medium">bpm</span></p>
                                 <p className="text-[10px] font-bold text-primary mt-1">STABLE</p>
                             </div>
                         </div>

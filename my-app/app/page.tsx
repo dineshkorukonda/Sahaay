@@ -358,7 +358,7 @@ export default function SanctuaryHome() {
                           <span>Daily Tip</span>
                         </div>
                         <p className="text-sm text-foreground/80 leading-relaxed">
-                          "Small walks after meals can significantly lower blood sugar levels. Try 10 mins today!"
+                          &quot;Small walks after meals can significantly lower blood sugar levels. Try 10 mins today!&quot;
                         </p>
                       </div>
                     </div>
@@ -376,9 +376,9 @@ export default function SanctuaryHome() {
           <div className="max-w-6xl mx-auto relative z-10">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
               <div>
-                <h2 className="font-serif text-5xl md:text-7xl mb-6">You don't have <br />to do this alone.</h2>
+                <h2 className="font-serif text-5xl md:text-7xl mb-6">You don&apos;t have <br />to do this alone.</h2>
                 <p className="text-xl opacity-70 max-w-lg leading-relaxed">
-                  Connect with people who understand because they've been there.
+                  Connect with people who understand because they&apos;ve been there.
                   Sahaay builds bridges between experiences.
                 </p>
               </div>

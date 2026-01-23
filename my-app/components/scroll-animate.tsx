@@ -24,15 +24,16 @@ export function ScrollAnimate({ children, className, delay = 0 }: ScrollAnimateP
       { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
     )
 
-    if (ref.current) {
-      observer.observe(ref.current)
+    const currentRef = ref.current;
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (ref.current) {
-        observer.disconnect()
+      if (currentRef) {
+        observer.disconnect();
       }
-    }
+    };
   }, [delay])
 
   return (

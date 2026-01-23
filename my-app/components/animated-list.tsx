@@ -9,10 +9,10 @@ interface AnimatedListProps {
   delay?: number
 }
 
-export function AnimatedList({ 
-  className, 
-  children, 
-  delay = 0 
+export function AnimatedList({
+  className,
+  children,
+  delay = 0
 }: AnimatedListProps) {
   const [isVisible, setIsVisible] = React.useState(false)
   const listRef = React.useRef<HTMLDivElement>(null)
@@ -27,15 +27,16 @@ export function AnimatedList({
       { threshold: 0.1 }
     )
 
-    if (listRef.current) {
-      observer.observe(listRef.current)
+    const currentRef = listRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (listRef.current) {
-        observer.unobserve(listRef.current)
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
-    }
+    };
   }, [delay])
 
   return (
@@ -43,22 +44,24 @@ export function AnimatedList({
       ref={listRef}
       className={cn(
         "transition-all duration-700 ease-out",
-        isVisible 
-          ? "opacity-100 translate-y-0" 
+        isVisible
+          ? "opacity-100 translate-y-0"
           : "opacity-0 translate-y-8",
         className
       )}
     >
       {React.Children.map(children, (child, index) => {
         if (React.isValidElement(child)) {
-          const props = child.props as Record<string, any>
-          return React.cloneElement(child, {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const props = child.props as Record<string, any>;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return React.cloneElement(child as React.ReactElement<any>, {
             ...props,
             style: {
               ...(props.style || {}),
               transitionDelay: `${index * 100}ms`,
             },
-          } as any)
+          });
         }
         return child
       })}

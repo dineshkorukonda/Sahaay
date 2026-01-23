@@ -66,9 +66,34 @@ export default function AuthPage() {
                     </div>
 
                     {/* Form */}
-                    <form className="space-y-6" onSubmit={(e) => {
+                    <form className="space-y-6" onSubmit={async (e) => {
                         e.preventDefault();
-                        router.push('/onboarding');
+                        const formData = {
+                            mobile: (document.getElementById('mobile') as HTMLInputElement).value,
+                            password: (document.getElementById('password') as HTMLInputElement).value,
+                            // Signup only fields
+                            name: !isLogin ? (document.getElementById('fullname') as HTMLInputElement).value : undefined,
+                            email: !isLogin ? (document.getElementById('email') as HTMLInputElement).value : undefined,
+                        };
+
+                        try {
+                            const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
+                            const res = await fetch(endpoint, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(formData)
+                            });
+                            const data = await res.json();
+
+                            if (res.ok) {
+                                router.push('/onboarding');
+                            } else {
+                                alert(data.error || "Authentication failed");
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert("Something went wrong");
+                        }
                     }}>
 
                         {!isLogin && (
@@ -79,6 +104,7 @@ export default function AuthPage() {
                                 <input
                                     id="fullname"
                                     type="text"
+                                    required
                                     placeholder="John Doe"
                                     className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent transition-all"
                                 />
@@ -105,10 +131,24 @@ export default function AuthPage() {
                                 <input
                                     id="mobile"
                                     type="tel"
+                                    required
                                     placeholder="000-000-0000"
                                     className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent transition-all"
                                 />
                             </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label htmlFor="password" className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Password
+                            </label>
+                            <input
+                                id="password"
+                                type="password"
+                                required
+                                placeholder="••••••••"
+                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent transition-all"
+                            />
                         </div>
 
                         {!isLogin && (
@@ -130,6 +170,7 @@ export default function AuthPage() {
                                 <input
                                     id="terms"
                                     type="checkbox"
+                                    required={!isLogin}
                                     className="w-4 h-4 text-[#22c55e] border-gray-300 rounded focus:ring-[#22c55e] focus:ring-offset-0"
                                 />
                             </div>
@@ -142,7 +183,7 @@ export default function AuthPage() {
                             type="submit"
                             className="w-full bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold py-3 rounded-lg shadow-lg shadow-green-500/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
                         >
-                            Continue
+                            {isLogin ? "Login & Continue" : "Create Account"}
                         </button>
                     </form>
 

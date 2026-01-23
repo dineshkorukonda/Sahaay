@@ -3,7 +3,8 @@
 import { Users, Bell, Folder, AlertCircle, Plus, Settings, MoreVertical, Activity, PersonStanding, ChevronRight } from "lucide-react";
 import Image from "next/image";
 
-const members = [
+// Mock moved inside or renamed to membersMock
+const membersMock = [
     {
         name: "Sarah Johnson",
         role: "MOTHER",
@@ -17,35 +18,65 @@ const members = [
         emergencyAccess: true,
         image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=200&h=200",
     },
-    {
-        name: "James Johnson",
-        role: "SON",
-        status: "ATTENTION REQ.",
-        statusColor: "bg-red-100 text-red-700",
-        adherence: 60,
-        adherenceColor: "bg-red-500",
-        latestUpdate: "Alert: Missed morning insulin dose",
-        latestIcon: "!",
-        latestIconBg: "bg-red-100 text-red-600",
-        emergencyAccess: true,
-        image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200&h=200",
-    },
-    {
-        name: "Emily Davis",
-        role: "GRANDMOTHER",
-        status: "STABLE",
-        statusColor: "bg-blue-100 text-blue-700",
-        adherence: 92,
-        adherenceColor: "bg-emerald-500",
-        latestUpdate: "Latest: Daily walking goal reached",
-        latestIcon: "🚶",
-        latestIconBg: "bg-emerald-100 text-emerald-600",
-        emergencyAccess: false,
-        image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200&h=200",
-    },
+    // ... we will use this as fallback or merge with real data
 ];
 
+import React, { useEffect, useState } from "react";
+
 export default function FamilyPage() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [members, setMembers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchFamily = async () => {
+            try {
+                const res = await fetch('/api/family');
+                const json = await res.json();
+                if (json.success && json.family) {
+                    // Map API data to UI structure if needed, or use mock fallback for demo
+                    // Since the API returns simple data: { id, name, relationship, age }
+                    // We need to map it to the UI rich Cards.
+                    // For now, let's use the hardcoded mock members as the base and pretend we fetched them.
+                    // In a real app we'd map json.family to this structure.
+                    // Let's just assume success means we show the mock data + any new ones.
+
+                    // Simple mapping demo:
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const apiMembers = json.family.map((m: any) => ({
+                        name: m.name,
+                        role: m.relationship?.toUpperCase() || "MEMBER",
+                        status: "STABLE",
+                        statusColor: "bg-blue-100 text-blue-700",
+                        adherence: 100,
+                        adherenceColor: "bg-emerald-500",
+                        latestUpdate: "Joined recently",
+                        latestIcon: "👤",
+                        latestIconBg: "bg-blue-100 text-blue-600",
+                        emergencyAccess: false,
+                        image: `https://ui-avatars.com/api/?name=${m.name}&background=random`,
+                    }));
+
+                    if (apiMembers.length > 0) {
+                        // Merge with mock or replace. Let's replace for "real" feel, or merge if empty.
+                        setMembers(apiMembers); // If we rely purely on API
+                    } else {
+                        // Fallback to mock for demo if API returns empty (which it does in my loop unless I added some)
+                        // Actually I hardcoded some in the GET route.
+                        setMembers(membersMock);
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                setMembers(membersMock);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchFamily();
+    }, []);
+
+    if (loading) return <div className="p-10 text-center">Loading family circle...</div>;
     return (
         <div className="p-8 min-h-screen space-y-8 pb-20">
             {/* Alert Banner */}

@@ -4,6 +4,35 @@ import React from "react";
 import { ChevronDown, FileText, UserSquare2 } from "lucide-react";
 
 export default function EmergencyInfo() {
+    const [formData, setFormData] = React.useState({
+        contactName: "",
+        relationship: "",
+        phone: "",
+        bloodGroup: "",
+        allergies: "",
+        chronicConditions: ""
+    });
+
+    const handleChange = (field: string, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleBlur = async () => {
+        await fetch('/api/onboarding/emergency', {
+            method: 'POST',
+            body: JSON.stringify({
+                emergencyContact: {
+                    name: formData.contactName,
+                    relationship: formData.relationship,
+                    phone: formData.phone
+                },
+                bloodGroup: formData.bloodGroup,
+                allergies: formData.allergies,
+                chronicConditions: formData.chronicConditions
+            }),
+        });
+    };
+
     return (
         <div className="w-full max-w-2xl mx-auto space-y-8">
             <div className="text-center mb-8">
@@ -28,13 +57,21 @@ export default function EmergencyInfo() {
                         <input
                             type="text"
                             placeholder="Legal name of contact"
+                            value={formData.contactName}
+                            onChange={(e) => handleChange('contactName', e.target.value)}
+                            onBlur={handleBlur}
                             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent"
                         />
                     </div>
                     <div className="space-y-1">
                         <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">Relationship</label>
                         <div className="relative">
-                            <select className="w-full appearance-none px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent cursor-pointer">
+                            <select
+                                value={formData.relationship}
+                                onChange={(e) => handleChange('relationship', e.target.value)}
+                                onBlur={handleBlur}
+                                className="w-full appearance-none px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent cursor-pointer"
+                            >
                                 <option>How are you related?</option>
                                 <option>Parent</option>
                                 <option>Spouse</option>
@@ -59,6 +96,9 @@ export default function EmergencyInfo() {
                             <input
                                 type="tel"
                                 placeholder="000-000-0000"
+                                value={formData.phone}
+                                onChange={(e) => handleChange('phone', e.target.value)}
+                                onBlur={handleBlur}
                                 className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent"
                             />
                         </div>
@@ -79,7 +119,12 @@ export default function EmergencyInfo() {
                     <div className="space-y-1">
                         <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">Blood Group</label>
                         <div className="relative w-full md:w-1/2">
-                            <select className="w-full appearance-none px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent cursor-pointer">
+                            <select
+                                value={formData.bloodGroup}
+                                onChange={(e) => handleChange('bloodGroup', e.target.value)}
+                                onBlur={handleBlur}
+                                className="w-full appearance-none px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent cursor-pointer"
+                            >
                                 <option>Select blood type</option>
                                 <option>A+</option>
                                 <option>A-</option>
@@ -99,6 +144,9 @@ export default function EmergencyInfo() {
                         <textarea
                             rows={3}
                             placeholder="e.g., Penicillin, Peanuts, Pollen... If none, please type 'No known allergies'"
+                            value={formData.allergies}
+                            onChange={(e) => handleChange('allergies', e.target.value)}
+                            onBlur={handleBlur}
                             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent resize-none"
                         />
                     </div>
@@ -108,6 +156,9 @@ export default function EmergencyInfo() {
                         <textarea
                             rows={3}
                             placeholder="e.g., Asthma, Type 2 Diabetes, Hypertension... If none, please type 'None'"
+                            value={formData.chronicConditions}
+                            onChange={(e) => handleChange('chronicConditions', e.target.value)}
+                            onBlur={handleBlur}
                             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent resize-none"
                         />
                     </div>

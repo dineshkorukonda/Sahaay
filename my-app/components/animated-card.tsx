@@ -8,11 +8,11 @@ interface AnimatedCardProps extends React.HTMLAttributes<HTMLDivElement> {
   delay?: number
 }
 
-export function AnimatedCard({ 
-  className, 
-  children, 
+export function AnimatedCard({
+  className,
+  children,
   delay = 0,
-  ...props 
+  ...props
 }: AnimatedCardProps) {
   const [isVisible, setIsVisible] = React.useState(false)
   const cardRef = React.useRef<HTMLDivElement>(null)
@@ -27,15 +27,16 @@ export function AnimatedCard({
       { threshold: 0.1 }
     )
 
-    if (cardRef.current) {
-      observer.observe(cardRef.current)
+    const currentRef = cardRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (cardRef.current) {
-        observer.unobserve(cardRef.current)
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
-    }
+    };
   }, [delay])
 
   return (
@@ -43,8 +44,8 @@ export function AnimatedCard({
       ref={cardRef}
       className={cn(
         "transition-all duration-700 ease-out",
-        isVisible 
-          ? "opacity-100 translate-y-0" 
+        isVisible
+          ? "opacity-100 translate-y-0"
           : "opacity-0 translate-y-8",
         "hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1",
         className
