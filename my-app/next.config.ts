@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
     ],
   },
   env: {
-    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    GOOGLE_API_KEY: process.env.GOOOGLE_API_KEY,
   },
 };
 

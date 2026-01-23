@@ -69,9 +69,9 @@ export async function POST(req: Request) {
                         console.error('Error parsing PDF with pdfjs-dist:', pdfError);
                         
                         // Fallback to pdf-parse if pdfjs-dist fails
+                        const originalError = console.error; // Declare outside try-catch for scope
                         try {
                             // Try pdf-parse as fallback (suppress initialization errors)
-                            const originalError = console.error;
                             console.error = () => {}; // Suppress test file errors
                             
                             // eslint-disable-next-line @typescript-eslint/no-require-imports

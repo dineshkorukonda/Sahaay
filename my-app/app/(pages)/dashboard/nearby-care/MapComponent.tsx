@@ -38,7 +38,7 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
         }
     }, []);
 
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+    const apiKey = process.env.GOOOGLE_API_KEY || '';
     
     const { isLoaded, loadError } = useJsApiLoader({
         id: 'google-map-script',
@@ -109,10 +109,10 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
             <div className="h-full w-full flex items-center justify-center bg-gray-100">
                 <div className="text-center p-6 bg-white rounded-xl shadow-lg max-w-md">
                     <p className="text-red-600 font-semibold mb-2 text-lg">Google Maps API Key Missing</p>
-                    <p className="text-sm text-muted-foreground mb-4">Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your .env file</p>
+                    <p className="text-sm text-muted-foreground mb-4">Please add GOOOGLE_API_KEY to your .env file</p>
                     <div className="text-left text-xs bg-gray-50 p-3 rounded">
                         <p className="font-semibold mb-1">Add to .env:</p>
-                        <code className="text-xs">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_api_key_here</code>
+                        <code className="text-xs">GOOOGLE_API_KEY=your_api_key_here</code>
                     </div>
                 </div>
             </div>

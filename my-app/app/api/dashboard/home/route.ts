@@ -38,7 +38,13 @@ export async function GET(req: Request) {
         } : null;
 
         // Get actions from care plan only (no dummy data)
-        const actions = [];
+        const actions: Array<{
+            id: string;
+            title: string;
+            type: string;
+            time: string;
+            status: string;
+        }> = [];
         if (carePlan) {
             if (carePlan.medications) {
                 carePlan.medications.forEach((med, index) => {
