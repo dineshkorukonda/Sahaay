@@ -1,0 +1,202 @@
+"use client";
+
+import { Bell, Flame, Medal, CheckCircle2, Circle, ChevronRight, MessageSquare, MoreHorizontal } from "lucide-react";
+import Image from "next/image";
+
+export default function DashboardPage() {
+    return (
+        <div className="p-8 min-h-screen space-y-8">
+            {/* Header */}
+            <header className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold">Main Dashboard</h1>
+                <div className="flex items-center gap-6">
+                    <div className="relative w-96">
+                        <input
+                            type="text"
+                            placeholder="Search medical records..."
+                            className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all border-none shadow-sm"
+                        />
+                        <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <button className="relative p-2 text-muted-foreground hover:text-foreground transition-colors">
+                        <Bell className="h-6 w-6" />
+                        <span className="absolute top-1.5 right-2 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background"></span>
+                    </button>
+                    <div className="flex items-center gap-3">
+                        <div className="text-right">
+                            <p className="text-sm font-bold leading-none">Alex Johnson</p>
+                            <p className="text-xs text-muted-foreground pt-1">Patient ID: #8291</p>
+                        </div>
+                        <div className="h-10 w-10 rounded-full bg-emerald-100 overflow-hidden border border-white shadow-sm">
+                            <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100&h=100" alt="Profile" className="h-full w-full object-cover" />
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            {/* Welcome & Stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Welcome Block */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="space-y-2">
+                        <h2 className="text-4xl font-bold tracking-tight text-foreground">Good Morning, Alex</h2>
+                        <p className="text-muted-foreground text-lg">You're on a 7-day streak! Keep up the great work and stay healthy.</p>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <button className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all active:scale-95">
+                            View Health Report
+                        </button>
+                        <button className="bg-white/80 backdrop-blur-sm border border-border text-foreground px-6 py-3 rounded-xl font-semibold hover:bg-white transition-all active:scale-95">
+                            Care Plan Details
+                        </button>
+                    </div>
+
+                    {/* Today's Actions */}
+                    <div className="pt-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-bold flex items-center gap-2">
+                                <span className="text-primary">📅</span> Today's Actions
+                            </h3>
+                            <button className="text-sm font-semibold text-primary hover:underline">View Schedule</button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* Action Item 1 */}
+                            <div className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-border/40">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-12 w-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                                        <span className="text-2xl">💊</span>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-foreground">Lisinopril - 10mg</h4>
+                                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-primary"></span> 08:00 AM • Morning Dose
+                                        </p>
+                                    </div>
+                                </div>
+                                <button className="bg-primary text-primary-foreground px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-md shadow-primary/20 hover:bg-primary/90 transition-colors">
+                                    <CheckCircle2 className="h-4 w-4" /> Log Taken
+                                </button>
+                            </div>
+
+                            {/* Action Item 2 */}
+                            <div className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-border/40">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-12 w-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                                        <span className="text-2xl">😐</span>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-foreground">Daily Symptom Check</h4>
+                                        <p className="text-xs text-muted-foreground">How are you feeling today?</p>
+                                    </div>
+                                </div>
+                                <button className="bg-gray-100 text-foreground px-5 py-2 rounded-lg font-bold text-sm hover:bg-gray-200 transition-colors">
+                                    Log Status
+                                </button>
+                            </div>
+
+                            {/* Action Item 3 */}
+                            <div className="bg-white/60 rounded-2xl p-4 flex items-center justify-between border border-border/40">
+                                <div className="flex items-center gap-4 opacity-60">
+                                    <div className="h-12 w-12 rounded-xl bg-blue-50 text-blue-400 flex items-center justify-center">
+                                        <span className="text-2xl">💊</span>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-foreground">Metformin - 500mg</h4>
+                                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span> 08:00 PM • Evening Dose
+                                        </p>
+                                    </div>
+                                </div>
+                                <span className="text-sm font-medium text-muted-foreground px-4">Upcoming</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Column Stats */}
+                <div className="space-y-6">
+                    {/* Streak Card */}
+                    <div className="bg-[#E3F5EE] rounded-3xl p-6 relative overflow-hidden">
+                        <div className="relative z-10">
+                            <p className="text-primary font-medium mb-1">Current Streak</p>
+                            <p className="text-4xl font-bold text-foreground">7 Days</p>
+                        </div>
+                        <div className="absolute top-6 right-6 h-12 w-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
+                            <Flame className="h-6 w-6 fill-current" />
+                        </div>
+                    </div>
+
+                    {/* Points Card */}
+                    <div className="bg-[#E3F5EE] rounded-3xl p-6 relative overflow-hidden">
+                        <div className="relative z-10">
+                            <p className="text-primary font-medium mb-1">Health Points</p>
+                            <p className="text-4xl font-bold text-foreground">1,250</p>
+                        </div>
+                        <div className="absolute top-6 right-6 h-12 w-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
+                            <Medal className="h-6 w-6 fill-current" />
+                        </div>
+                    </div>
+
+                    {/* Vitals Card */}
+                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/40">
+                        <h3 className="font-bold text-lg mb-6">Recent Vitals</h3>
+
+                        <div className="flex justify-between mb-8">
+                            <div>
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Blood Pressure</p>
+                                <p className="text-2xl font-bold text-foreground">120/80</p>
+                                <p className="text-[10px] font-bold text-primary mt-1">NORMAL</p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Heart Rate</p>
+                                <p className="text-2xl font-bold text-foreground">72 <span className="text-sm text-muted-foreground font-medium">bpm</span></p>
+                                <p className="text-[10px] font-bold text-primary mt-1">STABLE</p>
+                            </div>
+                        </div>
+
+                        {/* Chart Mock */}
+                        <div className="h-24 flex items-end justify-between gap-2 px-2">
+                            <div className="w-full bg-emerald-100 rounded-t-sm h-[40%] relative group"></div>
+                            <div className="w-full bg-emerald-200 rounded-t-sm h-[60%]"></div>
+                            <div className="w-full bg-emerald-300 rounded-t-sm h-[30%]"></div>
+                            <div className="w-full bg-emerald-400 rounded-t-sm h-[75%]"></div>
+                            <div className="w-full bg-emerald-300 rounded-t-sm h-[50%]"></div>
+                            <div className="w-full bg-emerald-400 rounded-t-sm h-[80%]"></div>
+                            <div className="w-full bg-primary rounded-t-sm h-[95%] shadow-lg shadow-primary/20"></div>
+                        </div>
+                        <p className="text-center text-xs font-bold text-primary mt-4">Full Bio-metrics Analytics</p>
+                    </div>
+
+                    {/* Family Card */}
+                    <div className="bg-[#1C211E] rounded-3xl p-6 text-white relative overflow-hidden">
+                        <div className="relative z-10">
+                            <h3 className="font-bold text-lg mb-2">Connect with Family</h3>
+                            <p className="text-gray-400 text-sm mb-6 leading-relaxed">Your daughter, Sarah, just updated the care notes.</p>
+
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center -space-x-3">
+                                    <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100&h=100" alt="Sarah" className="h-10 w-10 rounded-full border-2 border-[#1C211E] object-cover" />
+                                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=100&h=100" alt="Son" className="h-10 w-10 rounded-full border-2 border-[#1C211E] object-cover" />
+                                    <div className="h-10 w-10 rounded-full border-2 border-[#1C211E] bg-white text-[#1C211E] flex items-center justify-center text-xs font-bold pl-1">
+                                        +3
+                                    </div>
+                                </div>
+
+                                <button className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                                    <MessageSquare className="h-5 w-5 fill-white/50 text-white" />
+                                </button>
+                            </div>
+                        </div>
+                        {/* Abstract shape */}
+                        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    );
+}
