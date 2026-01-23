@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { BriefcaseMedical, ChevronDown, HelpCircle } from "lucide-react";
 
 export default function AuthPage() {
@@ -9,6 +10,8 @@ export default function AuthPage() {
     const [countryCode, setCountryCode] = useState("+1 (US)");
 
     const toggleAuthMode = () => setIsLogin(!isLogin);
+
+    const router = useRouter(); // Initialize router
 
     return (
         <div className="flex min-h-screen w-full flex-row">
@@ -63,7 +66,10 @@ export default function AuthPage() {
                     </div>
 
                     {/* Form */}
-                    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+                    <form className="space-y-6" onSubmit={(e) => {
+                        e.preventDefault();
+                        router.push('/onboarding');
+                    }}>
 
                         {!isLogin && (
                             <div className="space-y-1">

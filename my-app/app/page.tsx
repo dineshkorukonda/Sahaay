@@ -62,9 +62,11 @@ export default function SanctuaryHome() {
           </div>
 
           <div className="flex items-center gap-2 ml-4 md:ml-8">
-            <Button className="rounded-full bg-primary text-white hover:bg-primary/90 px-6 h-10 shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95">
-              Begin Journey
-            </Button>
+            <Link href="/auth/login">
+              <Button className="rounded-full bg-primary text-white hover:bg-primary/90 px-6 h-10 shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95">
+                Begin Journey
+              </Button>
+            </Link>
           </div>
         </div>
       </nav>

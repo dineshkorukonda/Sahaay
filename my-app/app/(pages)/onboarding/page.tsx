@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { ArrowLeft, ArrowRight, HelpCircle, User } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BriefcaseMedical } from "lucide-react";
 
 // Steps
@@ -14,6 +15,7 @@ import FamilySetup from "./steps/FamilySetup";
 import RecordsUpload from "./steps/RecordsUpload";
 
 export default function OnboardingPage() {
+    const router = useRouter();
     const [currentStep, setCurrentStep] = useState(1);
     const totalSteps = 5;
 
@@ -104,8 +106,8 @@ export default function OnboardingPage() {
                         onClick={prevStep}
                         disabled={currentStep === 1}
                         className={`flex items-center gap-2 font-bold px-6 py-3 rounded-lg transition-colors ${currentStep === 1
-                                ? "text-gray-300 cursor-not-allowed"
-                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                             }`}
                     >
                         <ArrowLeft className="w-4 h-4" />
@@ -122,7 +124,10 @@ export default function OnboardingPage() {
                             <ArrowRight className="w-4 h-4" />
                         </button>
                     ) : (
-                        <button className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg shadow-teal-500/20 transition-all transform active:scale-[0.98] flex items-center gap-2">
+                        <button
+                            onClick={() => router.push('/dashboard')}
+                            className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg shadow-teal-500/20 transition-all transform active:scale-[0.98] flex items-center gap-2"
+                        >
                             Complete Setup
                         </button>
                     )}
