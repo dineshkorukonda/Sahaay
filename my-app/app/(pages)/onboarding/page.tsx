@@ -9,20 +9,16 @@ import { BriefcaseMedical } from "lucide-react";
 import { Loader } from "@/components/ui/loader";
 
 // Steps
-import LanguageSelection from "./steps/LanguageSelection";
 import ProfileSetup from "./steps/ProfileSetup";
 import LocationSetup from "./steps/LocationSetup";
 import EmergencyInfo from "./steps/EmergencyInfo";
-import FamilySetup from "./steps/FamilySetup";
 import RecordsUpload from "./steps/RecordsUpload";
 
 export default function OnboardingPage() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(1);
     const [hasRecords, setHasRecords] = useState(false);
-    const totalSteps = 5; // Language, Profile, Location, Emergency, Family
-
-    const [selectedLanguage, setSelectedLanguage] = useState("English"); // Default to English
+    const totalSteps = 3; // Profile, Location, Emergency
 
     // Load saved step from localStorage and check profile progress on mount
     useEffect(() => {
@@ -33,37 +29,41 @@ export default function OnboardingPage() {
                 if (res.ok) {
                     const data = await res.json();
                     const profile = data.data?.profile;
-                    
+
                     if (profile) {
                         // Determine step based on what's completed
                         if (!profile.dob) {
-                            setCurrentStep(2); // Profile setup
+                            setCurrentStep(1); // Profile setup
                         } else if (!profile.location?.pinCode) {
-                            setCurrentStep(3); // Location setup
+                            setCurrentStep(2); // Location setup
                         } else if (!profile.emergencyContact) {
-                            setCurrentStep(4); // Emergency info
+                            setCurrentStep(3); // Emergency info
                         } else {
-                            // All required fields complete, check saved step or default to 5 (Family)
+                            // All required fields complete, check saved step or default to 3
                             const savedStep = localStorage.getItem('onboarding_step');
                             if (savedStep) {
                                 const step = parseInt(savedStep, 10);
                                 if (step >= 1 && step <= totalSteps) {
                                     setCurrentStep(step);
                                 } else {
-                                    setCurrentStep(5); // Default to Family step
+                                    setCurrentStep(3); // Default to Emergency step
                                 }
                             } else {
-                                setCurrentStep(5); // Default to Family step
+                                setCurrentStep(3); // Default to Emergency step
                             }
                         }
                     } else {
-                        // No profile, check saved step
+                        // No profile, check saved step or default to 1 (Profile)
                         const savedStep = localStorage.getItem('onboarding_step');
                         if (savedStep) {
                             const step = parseInt(savedStep, 10);
                             if (step >= 1 && step <= totalSteps) {
                                 setCurrentStep(step);
+                            } else {
+                                setCurrentStep(1);
                             }
+                        } else {
+                            setCurrentStep(1);
                         }
                     }
                 }
@@ -75,7 +75,11 @@ export default function OnboardingPage() {
                     const step = parseInt(savedStep, 10);
                     if (step >= 1 && step <= totalSteps) {
                         setCurrentStep(step);
+                    } else {
+                        setCurrentStep(1);
                     }
+                } else {
+                    setCurrentStep(1);
                 }
             }
         };
@@ -143,11 +147,9 @@ export default function OnboardingPage() {
 
     const getStepTitle = () => {
         switch (currentStep) {
-            case 1: return "Language Selection";
-            case 2: return "Profile Creation";
-            case 3: return "Location Setup";
-            case 4: return "Emergency Details";
-            case 5: return "Family Setup";
+            case 1: return "Profile Creation";
+            case 2: return "Location Setup";
+            case 3: return "Emergency Details";
             default: return "";
         }
     };
@@ -155,15 +157,11 @@ export default function OnboardingPage() {
     const renderStep = () => {
         switch (currentStep) {
             case 1:
-                return <LanguageSelection selectedLanguage={selectedLanguage} onSelect={(lang) => setSelectedLanguage(lang)} />;
-            case 2:
                 return <ProfileSetup />;
-            case 3:
+            case 2:
                 return <LocationSetup />;
-            case 4:
+            case 3:
                 return <EmergencyInfo />;
-            case 5:
-                return <FamilySetup />;
             default:
                 return null;
         }

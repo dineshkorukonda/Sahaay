@@ -7,7 +7,7 @@ export default function FamilySetup() {
     const [members, setMembers] = React.useState<Array<{
         id: number;
         name: string;
-        relation: string;
+        relationship: string;
         phone: string;
         status: string;
     }>>([]);
@@ -15,12 +15,12 @@ export default function FamilySetup() {
     const [showAddForm, setShowAddForm] = React.useState(false);
     const [newMember, setNewMember] = React.useState({
         name: "",
-        relation: "",
+        relationship: "",
         phone: ""
     });
 
     const handleAddMember = async () => {
-        if (!newMember.name || !newMember.relation || !newMember.phone) {
+        if (!newMember.name || !newMember.relationship || !newMember.phone) {
             alert("Please fill in all fields");
             return;
         }
@@ -37,12 +37,12 @@ export default function FamilySetup() {
                 const addedMember = {
                     id: Date.now(),
                     name: newMember.name,
-                    relation: newMember.relation,
+                    relationship: newMember.relationship,
                     phone: newMember.phone,
                     status: "Pending"
                 };
                 setMembers([...members, addedMember]);
-                setNewMember({ name: "", relation: "", phone: "" });
+                setNewMember({ name: "", relationship: "", phone: "" });
                 setShowAddForm(false);
             } else {
                 alert(json.error || "Failed to add family member");
@@ -86,7 +86,7 @@ export default function FamilySetup() {
                     {members.map((member) => (
                         <div key={member.id} className="grid grid-cols-12 gap-4 p-4 items-center border-b border-border hover:bg-muted/30 transition-colors">
                             <div className="col-span-3 font-semibold text-foreground">{member.name}</div>
-                            <div className="col-span-2 text-primary font-medium">{member.relation}</div>
+                            <div className="col-span-2 text-primary font-medium">{member.relationship}</div>
                             <div className="col-span-3 text-muted-foreground font-mono text-sm tracking-wide">{member.phone}</div>
                             <div className="col-span-2">
                                 <button className="flex items-center gap-1 text-xs font-semibold bg-muted px-3 py-1.5 rounded-lg text-foreground hover:bg-muted/80 transition-colors">
@@ -124,8 +124,8 @@ export default function FamilySetup() {
                         <div>
                             <label className="block text-sm font-semibold text-foreground mb-1">Relationship</label>
                             <select
-                                value={newMember.relation}
-                                onChange={(e) => setNewMember({ ...newMember, relation: e.target.value })}
+                                value={newMember.relationship}
+                                onChange={(e) => setNewMember({ ...newMember, relationship: e.target.value })}
                                 className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                             >
                                 <option value="">Select relationship</option>
@@ -158,7 +158,7 @@ export default function FamilySetup() {
                             <button
                                 onClick={() => {
                                     setShowAddForm(false);
-                                    setNewMember({ name: "", relation: "", phone: "" });
+                                    setNewMember({ name: "", relationship: "", phone: "" });
                                 }}
                                 className="px-6 py-2 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-colors"
                             >

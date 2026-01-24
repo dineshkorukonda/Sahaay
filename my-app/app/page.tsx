@@ -99,13 +99,12 @@ export default function SanctuaryHome() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-              <Button size="xl" className="h-16 px-12 rounded-full text-lg shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.2)] hover:scale-105 transition-all bg-foreground text-background hover:bg-foreground/90">
-                Enter Your Sanctuary
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-              <Button variant="outline" size="xl" className="h-16 px-12 rounded-full text-lg border-2 hover:bg-muted/50 hover:border-foreground/10 transition-all">
-                Watch Demo
-              </Button>
+              <Link href="/auth/login">
+                <Button size="xl" className="h-16 px-12 rounded-full text-lg shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.2)] hover:scale-105 transition-all bg-foreground text-background hover:bg-foreground/90">
+                  Enter Your Sanctuary
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              </Link>
             </div>
           </div>
         </section>
