@@ -105,8 +105,12 @@ export async function POST(req: Request) {
     3. EXERCISE PLAN: Suggest safe, effective exercises.
        - Include type, duration, and frequency.
        - Tailor intensity to the patient's condition (e.g., Low impact for arthritis).
+       
+    4. VITALS MONITORING:
+       - For Blood Glucose: Schedule checks WEEKLY (e.g., "Every Monday morning fasting"), NOT daily unless critical.
+       - For BP/Others: Schedule as appropriate (e.g., "Twice a week").
 
-    4. SCHEDULE: Create a balanced 7-day weekly schedule integrating meds, meals, and exercises.
+    5. SCHEDULE: Create a balanced 7-day weekly schedule integrating meds, meals, and exercises.
 
     OUTPUT FORMAT (JSON ONLY):
     {

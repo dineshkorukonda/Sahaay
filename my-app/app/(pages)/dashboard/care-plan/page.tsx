@@ -232,6 +232,29 @@ export default function CarePlanPage() {
         );
     };
 
+    const handleDownloadReport = async () => {
+        try {
+            showToast('Generating report...', 'success');
+            const res = await fetch('/api/reports/download');
+            if (!res.ok) throw new Error('Failed to generate');
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sahaay-medical-report-${new Date().toISOString().split('T')[0]}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            showToast('Report downloaded successfully', 'success');
+        } catch (err) {
+            console.error('Download error:', err);
+            showToast('Failed to download report', 'error');
+        }
+    };
+
     if (loading) {
         return <Loader fullScreen text="Loading care plan..." />;
     }
@@ -258,6 +281,13 @@ export default function CarePlanPage() {
                     </p>
                 </div>
                 <div className="flex gap-3">
+                    <button
+                        onClick={handleDownloadReport}
+                        className="bg-white border border-gray-200 text-foreground px-4 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M12 18v-6" /><path d="m9 15 3 3 3-3" /></svg>
+                        Download Report
+                    </button>
                     <button
                         onClick={handleGenerateSummary}
                         disabled={generating}
@@ -382,99 +412,117 @@ export default function CarePlanPage() {
                         </div>
                     )}
 
-                    {/* Diet Plan Section - Always show if care plan exists */}
-                    <div className="bg-white rounded-3xl p-6 border border-border shadow-sm">
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="h-10 w-10 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center">
-                                <Utensils className="h-5 w-5" />
-                            </div>
-                            <h3 className="font-bold text-xl">Diet Plan</h3>
-                        </div>
-                        {dietPlan ? (
-                            <div className="space-y-6">
-                                {dietPlan.breakfast && renderDietItem('Breakfast', dietPlan.breakfast)}
-                                {dietPlan.lunch && renderDietItem('Lunch', dietPlan.lunch)}
-                                {dietPlan.dinner && renderDietItem('Dinner', dietPlan.dinner)}
-                                {dietPlan.snacks && renderDietItem('Snacks', dietPlan.snacks)}
+                    {/* Diet Plan Section - Collapsible */}
+                    <div className="bg-white rounded-3xl border border-border shadow-sm overflow-hidden">
+                        <details className="group" open>
+                            <summary className="flex items-center justify-between p-6 cursor-pointer bg-white hover:bg-gray-50 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-10 w-10 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center">
+                                        <Utensils className="h-5 w-5" />
+                                    </div>
+                                    <h3 className="font-bold text-xl">Diet Plan</h3>
+                                </div>
+                                <div className="transform transition-transform group-open:rotate-180">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                                </div>
+                            </summary>
+                            <div className="p-6 pt-0 border-t border-gray-100">
+                                {dietPlan ? (
+                                    <div className="space-y-6 mt-6">
+                                        {dietPlan.breakfast && renderDietItem('Breakfast', dietPlan.breakfast)}
+                                        {dietPlan.lunch && renderDietItem('Lunch', dietPlan.lunch)}
+                                        {dietPlan.dinner && renderDietItem('Dinner', dietPlan.dinner)}
+                                        {dietPlan.snacks && renderDietItem('Snacks', dietPlan.snacks)}
 
-                                {dietPlan.restrictions && dietPlan.restrictions.length > 0 && (
-                                    <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                                        <h4 className="font-bold text-sm text-red-700 mb-2 uppercase">Food Restrictions</h4>
-                                        <ul className="list-disc list-inside space-y-1">
-                                            {dietPlan.restrictions.map((r, i) => (
-                                                <li key={i} className="text-foreground">{r}</li>
-                                            ))}
-                                        </ul>
+                                        {dietPlan.restrictions && dietPlan.restrictions.length > 0 && (
+                                            <div className="p-4 bg-red-50 rounded-xl border border-red-100">
+                                                <h4 className="font-bold text-sm text-red-700 mb-2 uppercase">Food Restrictions</h4>
+                                                <ul className="list-disc list-inside space-y-1">
+                                                    {dietPlan.restrictions.map((r, i) => (
+                                                        <li key={i} className="text-foreground">{r}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        {dietPlan.recommendations && dietPlan.recommendations.length > 0 && (
+                                            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                                                <h4 className="font-bold text-sm text-emerald-700 mb-2 uppercase">Dietary Recommendations</h4>
+                                                <ul className="list-disc list-inside space-y-1">
+                                                    {dietPlan.recommendations.map((r, i) => (
+                                                        <li key={i} className="text-foreground">{r}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                                {dietPlan.recommendations && dietPlan.recommendations.length > 0 && (
-                                    <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                                        <h4 className="font-bold text-sm text-emerald-700 mb-2 uppercase">Dietary Recommendations</h4>
-                                        <ul className="list-disc list-inside space-y-1">
-                                            {dietPlan.recommendations.map((r, i) => (
-                                                <li key={i} className="text-foreground">{r}</li>
-                                            ))}
-                                        </ul>
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <Utensils className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                                        <p className="text-muted-foreground font-medium">No diet plan available</p>
+                                        <p className="text-sm text-muted-foreground mt-2">Click "Generate Summary" to create a personalized diet plan</p>
                                     </div>
                                 )}
                             </div>
-                        ) : (
-                            <div className="text-center py-8">
-                                <Utensils className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                                <p className="text-muted-foreground font-medium">No diet plan available</p>
-                                <p className="text-sm text-muted-foreground mt-2">Click "Generate Summary" to create a personalized diet plan</p>
-                            </div>
-                        )}
+                        </details>
                     </div>
 
-                    {/* Exercise Plan Section - Always show if care plan exists */}
-                    <div className="bg-white rounded-3xl p-6 border border-border shadow-sm">
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
-                                <Activity className="h-5 w-5" />
-                            </div>
-                            <h3 className="font-bold text-xl">Exercise & Workout Plan</h3>
-                        </div>
-                        {exercisePlan && exercisePlan.activities && exercisePlan.activities.length > 0 ? (
-                            <div className="space-y-4">
-                                {exercisePlan.activities.map((activity, index) => (
-                                    <div key={index} className="p-4 rounded-xl border-2 border-blue-200 bg-blue-50">
-                                        <div className="flex items-start justify-between mb-2">
-                                            <h4 className="font-bold text-lg text-blue-900">{activity.name}</h4>
-                                            {activity.intensity && (
-                                                <span className="px-3 py-1 bg-blue-200 text-blue-800 rounded-full text-xs font-bold uppercase">
-                                                    {activity.intensity}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="flex gap-4 text-sm text-blue-700 font-medium">
-                                            <span className="flex items-center gap-1">
-                                                <Clock className="h-4 w-4" />
-                                                {activity.duration}
-                                            </span>
-                                            <span>•</span>
-                                            <span>{activity.frequency}</span>
-                                        </div>
+                    {/* Exercise Plan Section - Collapsible */}
+                    <div className="bg-white rounded-3xl border border-border shadow-sm overflow-hidden">
+                        <details className="group" open>
+                            <summary className="flex items-center justify-between p-6 cursor-pointer bg-white hover:bg-gray-50 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                                        <Activity className="h-5 w-5" />
                                     </div>
-                                ))}
-                                {exercisePlan.recommendations && exercisePlan.recommendations.length > 0 && (
-                                    <div className="mt-4 p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                                        <h4 className="font-bold text-sm text-emerald-700 mb-2 uppercase">Exercise Recommendations</h4>
-                                        <ul className="list-disc list-inside space-y-1">
-                                            {exercisePlan.recommendations.map((r, i) => (
-                                                <li key={i} className="text-foreground">{r}</li>
-                                            ))}
-                                        </ul>
+                                    <h3 className="font-bold text-xl">Exercise & Workout Plan</h3>
+                                </div>
+                                <div className="transform transition-transform group-open:rotate-180">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                                </div>
+                            </summary>
+                            <div className="p-6 pt-0 border-t border-gray-100">
+                                {exercisePlan && exercisePlan.activities && exercisePlan.activities.length > 0 ? (
+                                    <div className="space-y-4 mt-6">
+                                        {exercisePlan.activities.map((activity, index) => (
+                                            <div key={index} className="p-4 rounded-xl border-2 border-blue-200 bg-blue-50">
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <h4 className="font-bold text-lg text-blue-900">{activity.name}</h4>
+                                                    {activity.intensity && (
+                                                        <span className="px-3 py-1 bg-blue-200 text-blue-800 rounded-full text-xs font-bold uppercase">
+                                                            {activity.intensity}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex gap-4 text-sm text-blue-700 font-medium">
+                                                    <span className="flex items-center gap-1">
+                                                        <Clock className="h-4 w-4" />
+                                                        {activity.duration}
+                                                    </span>
+                                                    <span>•</span>
+                                                    <span>{activity.frequency}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {exercisePlan.recommendations && exercisePlan.recommendations.length > 0 && (
+                                            <div className="mt-4 p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                                                <h4 className="font-bold text-sm text-emerald-700 mb-2 uppercase">Exercise Recommendations</h4>
+                                                <ul className="list-disc list-inside space-y-1">
+                                                    {exercisePlan.recommendations.map((r, i) => (
+                                                        <li key={i} className="text-foreground">{r}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                                        <p className="text-muted-foreground font-medium">No exercise plan available</p>
+                                        <p className="text-sm text-muted-foreground mt-2">Click "Generate Summary" to create a personalized workout plan</p>
                                     </div>
                                 )}
                             </div>
-                        ) : (
-                            <div className="text-center py-8">
-                                <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                                <p className="text-muted-foreground font-medium">No exercise plan available</p>
-                                <p className="text-sm text-muted-foreground mt-2">Click "Generate Summary" to create a personalized workout plan</p>
-                            </div>
-                        )}
+                        </details>
                     </div>
                 </div>
 
@@ -492,8 +540,8 @@ export default function CarePlanPage() {
                                         className="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-gray-50 transition-colors cursor-pointer group"
                                     >
                                         <div className={`h-5 w-5 rounded flex items-center justify-center flex-shrink-0 ${task.status === 'completed'
-                                                ? 'bg-emerald-500 text-white'
-                                                : 'border-2 border-gray-300 group-hover:border-emerald-500'
+                                            ? 'bg-emerald-500 text-white'
+                                            : 'border-2 border-gray-300 group-hover:border-emerald-500'
                                             }`}>
                                             {task.status === 'completed' && <Check className="h-3 w-3" />}
                                         </div>
