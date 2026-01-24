@@ -43,10 +43,10 @@ interface CarePlanData {
     problem?: string;
     medications?: Medication[];
     dietPlan?: {
-        breakfast?: string;
-        lunch?: string;
-        dinner?: string;
-        snacks?: string;
+        breakfast?: Array<{ name: string; portion: string }> | string;
+        lunch?: Array<{ name: string; portion: string }> | string;
+        dinner?: Array<{ name: string; portion: string }> | string;
+        snacks?: Array<{ name: string; portion: string }> | string;
         restrictions?: string[];
         recommendations?: string[];
     };
@@ -117,7 +117,7 @@ export default function CarePlanPage() {
 
     const toggleTaskStatus = async (taskIndex: number) => {
         if (!carePlan || !carePlan.dailyTasks) return;
-        
+
         const tasks = [...carePlan.dailyTasks];
         const task = tasks[taskIndex];
         const newStatus = task.status === 'completed' ? 'pending' : 'completed';
@@ -147,7 +147,7 @@ export default function CarePlanPage() {
 
     const markMedicationTaken = async (medIndex: number) => {
         if (!carePlan || !carePlan.medications) return;
-        
+
         const meds = [...carePlan.medications];
         meds[medIndex] = { ...meds[medIndex], status: 'completed' };
 
@@ -179,7 +179,7 @@ export default function CarePlanPage() {
         const day = monday.getDay();
         const diff = monday.getDate() - day + (day === 0 ? -6 : 1);
         monday.setDate(diff);
-        
+
         const days = [];
         for (let i = 0; i < 7; i++) {
             const date = new Date(monday);
@@ -210,6 +210,28 @@ export default function CarePlanPage() {
         return carePlan.medications.filter(m => m.status === 'pending');
     };
 
+    const renderDietItem = (label: string, item: Array<{ name: string; portion: string }> | string) => {
+        return (
+            <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
+                <h4 className="font-bold text-sm text-orange-700 mb-2 uppercase">{label}</h4>
+                {Array.isArray(item) ? (
+                    <ul className="space-y-2">
+                        {item.map((food, i) => (
+                            <li key={i} className="flex justify-between items-center text-sm">
+                                <span className="font-medium text-foreground">{food.name}</span>
+                                <span className="text-muted-foreground bg-white px-2 py-0.5 rounded border border-orange-100 text-xs">
+                                    {food.portion}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-foreground leading-relaxed">{item}</p>
+                )}
+            </div>
+        );
+    };
+
     if (loading) {
         return <Loader fullScreen text="Loading care plan..." />;
     }
@@ -236,7 +258,7 @@ export default function CarePlanPage() {
                     </p>
                 </div>
                 <div className="flex gap-3">
-                    <button 
+                    <button
                         onClick={handleGenerateSummary}
                         disabled={generating}
                         className="bg-emerald-500 text-white px-4 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2 shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -263,7 +285,7 @@ export default function CarePlanPage() {
                             <h3 className="font-bold text-xl">Weekly Schedule</h3>
                             <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-2">
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             const newWeek = new Date(currentWeek);
                                             newWeek.setDate(newWeek.getDate() - 7);
@@ -276,7 +298,7 @@ export default function CarePlanPage() {
                                     <span className="font-bold">
                                         {weekDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {weekDates[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                     </span>
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             const newWeek = new Date(currentWeek);
                                             newWeek.setDate(newWeek.getDate() + 7);
@@ -370,30 +392,11 @@ export default function CarePlanPage() {
                         </div>
                         {dietPlan ? (
                             <div className="space-y-6">
-                                {dietPlan.breakfast && (
-                                    <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
-                                        <h4 className="font-bold text-sm text-orange-700 mb-2 uppercase">Breakfast</h4>
-                                        <p className="text-foreground leading-relaxed">{dietPlan.breakfast}</p>
-                                    </div>
-                                )}
-                                {dietPlan.lunch && (
-                                    <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
-                                        <h4 className="font-bold text-sm text-orange-700 mb-2 uppercase">Lunch</h4>
-                                        <p className="text-foreground leading-relaxed">{dietPlan.lunch}</p>
-                                    </div>
-                                )}
-                                {dietPlan.dinner && (
-                                    <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
-                                        <h4 className="font-bold text-sm text-orange-700 mb-2 uppercase">Dinner</h4>
-                                        <p className="text-foreground leading-relaxed">{dietPlan.dinner}</p>
-                                    </div>
-                                )}
-                                {dietPlan.snacks && (
-                                    <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
-                                        <h4 className="font-bold text-sm text-orange-700 mb-2 uppercase">Snacks</h4>
-                                        <p className="text-foreground leading-relaxed">{dietPlan.snacks}</p>
-                                    </div>
-                                )}
+                                {dietPlan.breakfast && renderDietItem('Breakfast', dietPlan.breakfast)}
+                                {dietPlan.lunch && renderDietItem('Lunch', dietPlan.lunch)}
+                                {dietPlan.dinner && renderDietItem('Dinner', dietPlan.dinner)}
+                                {dietPlan.snacks && renderDietItem('Snacks', dietPlan.snacks)}
+
                                 {dietPlan.restrictions && dietPlan.restrictions.length > 0 && (
                                     <div className="p-4 bg-red-50 rounded-xl border border-red-100">
                                         <h4 className="font-bold text-sm text-red-700 mb-2 uppercase">Food Restrictions</h4>
@@ -483,22 +486,20 @@ export default function CarePlanPage() {
                         {dailyTasks.length > 0 ? (
                             <div className="space-y-3">
                                 {dailyTasks.map((task, index) => (
-                                    <label 
+                                    <label
                                         key={index}
                                         onClick={() => toggleTaskStatus(index)}
                                         className="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-gray-50 transition-colors cursor-pointer group"
                                     >
-                                        <div className={`h-5 w-5 rounded flex items-center justify-center flex-shrink-0 ${
-                                            task.status === 'completed' 
-                                                ? 'bg-emerald-500 text-white' 
+                                        <div className={`h-5 w-5 rounded flex items-center justify-center flex-shrink-0 ${task.status === 'completed'
+                                                ? 'bg-emerald-500 text-white'
                                                 : 'border-2 border-gray-300 group-hover:border-emerald-500'
-                                        }`}>
+                                            }`}>
                                             {task.status === 'completed' && <Check className="h-3 w-3" />}
                                         </div>
                                         <div className="flex flex-col flex-1">
-                                            <span className={`text-sm font-bold ${
-                                                task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
-                                            }`}>
+                                            <span className={`text-sm font-bold ${task.status === 'completed' ? 'line-through text-muted-foreground' : 'text-foreground'
+                                                }`}>
                                                 {task.title}
                                             </span>
                                             {task.description && (
