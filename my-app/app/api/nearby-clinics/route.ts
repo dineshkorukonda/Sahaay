@@ -70,9 +70,35 @@ export async function GET(req: Request) {
             }
         }
         // Fallback to profile location
-        else if (profile?.location?.latitude && profile?.location?.longitude) {
-            lat = profile.location.latitude;
-            lon = profile.location.longitude;
+        else if (profile?.location) {
+            if (profile.location.latitude && profile.location.longitude) {
+                lat = profile.location.latitude;
+                lon = profile.location.longitude;
+            } else if (profile.location.city || profile.location.pinCode) {
+                // Geocode profile location if cords are missing
+                const query = profile.location.pinCode ? `pincode ${profile.location.pinCode}` :
+                    `${profile.location.city}, ${profile.location.state || ''}`;
+
+                try {
+                    const geoRes = await fetch(
+                        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${googleApiKey}`
+                    );
+                    const geoData = await geoRes.json();
+
+                    if (geoData.status === 'OK' && geoData.results?.[0]) {
+                        const location = geoData.results[0].geometry.location;
+                        lat = location.lat;
+                        lon = location.lng;
+                        searchLocation = {
+                            city: profile.location.city,
+                            state: profile.location.state,
+                            pinCode: profile.location.pinCode
+                        };
+                    }
+                } catch (e) {
+                    console.error('Error geocoding profile location:', e);
+                }
+            }
         }
 
         if (!lat || !lon) {
@@ -96,34 +122,54 @@ export async function GET(req: Request) {
             { type: 'NGO', keyword: 'ngo healthcare' }
         ];
 
+        const errors: string[] = [];
+
         // Fetch concurrently
         await Promise.all(searchTypes.map(async (searchType) => {
             try {
-                // Use Nearby Search (New) or Text Search
-                // Using Text Search for flexibility with keywords like "NGO"
-                const placesRes = await fetch(
-                    `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchType.keyword)}&location=${lat},${lon}&radius=${radius}&key=${googleApiKey}`
-                );
-
-                const placesData = await placesRes.json();
-
-                if (placesData.status === 'OK' && placesData.results) {
-                    const mapped = placesData.results.slice(0, 5).map((place: any) => ({ // Limit 5 per category
-                        id: place.place_id,
-                        name: place.name,
-                        address: place.formatted_address,
-                        distance: calculateDistance(lat!, lon!, place.geometry.location.lat, place.geometry.location.lng).toFixed(1) + ' km',
-                        phone: 'View on map', // Phone requires Place Details API call, skipping for speed/cost unless needed
-                        hours: place.opening_hours?.open_now ? 'Open Now' : 'Check hours',
-                        latitude: place.geometry.location.lat,
-                        longitude: place.geometry.location.lng,
+                // Use New Places API (v1) Text Search
+                const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Goog-Api-Key': googleApiKey,
+                        'X-Goog-FieldMask': 'places.name,places.displayName,places.formattedAddress,places.location,places.regularOpeningHours'
+                    },
+                    body: JSON.stringify({
+                        textQuery: `${searchType.keyword}`,
+                        locationBias: {
+                            circle: {
+                                center: { latitude: lat, longitude: lon },
+                                radius: 5000.0
+                            }
+                        }
+                    })
+                });
+                
+                const placesData = await response.json();
+                
+                if (placesData.places) {
+                    const mapped = placesData.places.slice(0, 5).map((place: any) => ({ // Limit 5 per category
+                        id: place.name, // Resource name (e.g., places/ChIJ...)
+                        name: place.displayName?.text || 'Unknown Name',
+                        address: place.formattedAddress || 'No address',
+                        distance: calculateDistance(lat!, lon!, place.location.latitude, place.location.longitude).toFixed(1) + ' km',
+                        phone: 'View on map', 
+                        hours: place.regularOpeningHours?.openNow ? 'Open Now' : 'Check hours',
+                        latitude: place.location.latitude,
+                        longitude: place.location.longitude,
                         type: searchType.type,
                         amenity: searchType.keyword
                     }));
                     facilities.push(...mapped);
+                } else if (placesData.error) {
+                    const msg = `[${searchType.type}] API Error: ${placesData.error.code} - ${placesData.error.message}`;
+                    console.warn(msg);
+                    errors.push(msg);
                 }
             } catch (err) {
                 console.error(`Error fetching ${searchType.type}:`, err);
+                errors.push(`[${searchType.type}] Fetch Error: ${err instanceof Error ? err.message : String(err)}`);
             }
         }));
 
@@ -133,6 +179,7 @@ export async function GET(req: Request) {
         return NextResponse.json({
             success: true,
             clinics: sortedFacilities,
+            debugErrors: errors.length > 0 ? errors : undefined, // Return errors for debugging
             userLocation: { latitude: lat, longitude: lon },
             searchLocation: searchLocation || (profile?.location ? {
                 city: profile.location.city,
