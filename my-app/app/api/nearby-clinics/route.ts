@@ -39,7 +39,7 @@ export async function GET(req: Request) {
         const searchState = url.searchParams.get('state');
         const searchQuery = url.searchParams.get('q');
 
-        const googleApiKey = process.env.GOOGLE_API_KEY;
+        const googleApiKey = process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '';
         if (!googleApiKey) {
             throw new Error('GOOGLE_API_KEY is not defined');
         }
