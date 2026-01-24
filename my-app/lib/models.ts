@@ -217,10 +217,10 @@ export interface ICarePlan extends Document {
         status: 'pending' | 'completed' | 'missed';
     }>;
     dietPlan?: {
-        breakfast?: string;
-        lunch?: string;
-        dinner?: string;
-        snacks?: string;
+        breakfast?: Array<{ name: string; portion: string }>;
+        lunch?: Array<{ name: string; portion: string }>;
+        dinner?: Array<{ name: string; portion: string }>;
+        snacks?: Array<{ name: string; portion: string }>;
         restrictions?: string[];
         recommendations?: string[];
     };
@@ -275,10 +275,22 @@ const CarePlanSchema: Schema<ICarePlan> = new Schema({
         status: { type: String, enum: ['pending', 'completed', 'missed'], default: 'pending' }
     }],
     dietPlan: {
-        breakfast: { type: String },
-        lunch: { type: String },
-        dinner: { type: String },
-        snacks: { type: String },
+        breakfast: [{
+            name: { type: String },
+            portion: { type: String }
+        }],
+        lunch: [{
+            name: { type: String },
+            portion: { type: String }
+        }],
+        dinner: [{
+            name: { type: String },
+            portion: { type: String }
+        }],
+        snacks: [{
+            name: { type: String },
+            portion: { type: String }
+        }],
         restrictions: [{ type: String }],
         recommendations: [{ type: String }]
     },
@@ -320,6 +332,9 @@ export const MedicalRecord: Model<IMedicalRecord> = mongoose.models.MedicalRecor
 export const Profile: Model<IProfile> = mongoose.models.Profile || mongoose.model<IProfile>('Profile', ProfileSchema);
 export const FamilyMember: Model<IFamilyMember> = mongoose.models.FamilyMember || mongoose.model<IFamilyMember>('FamilyMember', FamilyMemberSchema);
 export const HealthStats: Model<IHealthStats> = mongoose.models.HealthStats || mongoose.model<IHealthStats>('HealthStats', HealthStatsSchema);
+
+// Force re-compilation of CarePlan model in dev to pick up schema changes
+if (process.env.NODE_ENV !== 'production') delete mongoose.models.CarePlan;
 export const CarePlan: Model<ICarePlan> = mongoose.models.CarePlan || mongoose.model<ICarePlan>('CarePlan', CarePlanSchema);
 
 // --- Badge/Achievement Schema ---
