@@ -11,7 +11,7 @@ const JWT_SECRET = new TextEncoder().encode(
 export async function POST(req: Request) {
     try {
         await connectDB();
-        
+
         // Support both Bearer token (mobile) and cookie (web)
         const authHeader = req.headers.get('authorization');
         let userId: string;
@@ -47,10 +47,10 @@ export async function POST(req: Request) {
             adherence: 100
         });
 
-        return NextResponse.json({ 
-            success: true, 
+        return NextResponse.json({
+            success: true,
             message: "Family member added successfully",
-            familyMember 
+            familyMember
         });
 
     } catch (error: unknown) {
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
     try {
         await connectDB();
-        
+
         // Support both Bearer token (mobile) and cookie (web)
         const authHeader = req.headers.get('authorization');
         let userId: string;
