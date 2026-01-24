@@ -1,16 +1,10 @@
 import { NextResponse } from 'next/server';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import connectDB from '@/lib/db';
 import { Profile, CarePlan, User } from '@/lib/models';
-
-declare module 'jspdf' {
-    interface jsPDF {
-        autoTable: (options: any) => jsPDF;
-    }
-}
 
 const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || 'fallback_secret_key_change_in_prod'
@@ -28,6 +22,7 @@ export async function GET(req: Request) {
         const userId = payload.userId as string;
 
         // Fetch Data
+        const user = await User.findById(userId);
         const profile = await Profile.findOne({ userId });
         const carePlan = await CarePlan.findOne({ userId }); // Ensure you get the latest plan
 
@@ -60,13 +55,13 @@ export async function GET(req: Request) {
         doc.line(14, 52, 60, 52); // Underline
 
         const patientInfo = [
-            ['Name', profile?.fullName || 'N/A'],
-            ['Date of Birth', profile?.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'],
+            ['Name', user?.name || 'N/A'],
+            ['Date of Birth', profile?.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'],
             ['Gender', profile?.gender || 'N/A'],
             ['Blood Group', profile?.bloodGroup || 'N/A'],
         ];
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: 55,
             head: [],
             body: patientInfo,
@@ -106,7 +101,7 @@ export async function GET(req: Request) {
                 med.time
             ]);
 
-            doc.autoTable({
+            autoTable(doc, {
                 startY: finalY + 5,
                 head: [['Medication', 'Dosage', 'Frequency', 'Timing']],
                 body: medRows,
