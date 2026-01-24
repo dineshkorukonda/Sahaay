@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import Groq from 'groq-sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import connectDB from '@/lib/db';
 import { CarePlan, MedicalRecord } from '@/lib/models';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API });
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'fallback_secret_key_change_in_prod'
@@ -74,136 +74,100 @@ export async function POST(req: Request) {
       time: "08:00 AM" // Default, will be scheduled by LLM
     }));
 
+    // Initialize Gemini Model
+    const model = genAI.getGenerativeModel({
+      model: "gemini-pro-latest",
+      generationConfig: { responseMimeType: "application/json" }
+    });
+
     // Generate care plan using AI with comprehensive data
-    const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `You are a medical care plan assistant. Based on the patient's health condition and medical history, generate a comprehensive care plan. 
+    const prompt = `
+    You are an expert medical care plan assistant. Based on the patient's health condition and medical history, generate a comprehensive, actionable care plan.
 
-IMPORTANT: Use the EXACT medications provided by the user. Do NOT generate new medications. Only schedule them and suggest appropriate times.
+    PATIENT DATA:
+    - Health Problems: ${Array.from(allProblems).join(', ') || context.problem}
+    - CURRENT MEDICATIONS: ${Array.from(allMedications).join(', ') || 'None'}
+    - Symptoms: ${allSymptoms.join(', ') || context.symptoms.join(', ') || 'None specified'}
+    - Medical Recommendations: ${allRecommendations.join(', ') || context.recommendations.join(', ') || 'None specified'}
+    - Latest Vitals: ${JSON.stringify(context.vitals)}
+    - Lab Values: ${JSON.stringify(latestRecord.labValues || [])}
 
-Return ONLY a valid JSON object with this structure:
-{
-  "title": "Care Plan Title",
-  "description": "Brief description",
-  "problem": "Health condition/problem",
-  "medications": [
+    CRITICAL INSTRUCTIONS:
+    1. MEDICATIONS: Schedule the EXACT medications listed above. Do NOT invent new ones. 
+       - Suggest realistic timings (e.g., "08:00 AM", "After dinner").
+       - If multiple medicines exist, space them out appropriately.
+
+    2. DIET PLAN: Create a specific, condition-appropriate diet.
+       - Provide structured meals (Breakfast, Lunch, Dinner, Snacks).
+       - Each meal MUST be a list of items with portions (e.g., Name: "Oatmeal", Portion: "1 cup").
+       - List specific foods to AVOID (Restrictions).
+
+    3. EXERCISE PLAN: Suggest safe, effective exercises.
+       - Include type, duration, and frequency.
+       - Tailor intensity to the patient's condition (e.g., Low impact for arthritis).
+
+    4. SCHEDULE: Create a balanced 7-day weekly schedule integrating meds, meals, and exercises.
+
+    OUTPUT FORMAT (JSON ONLY):
     {
-      "name": "EXACT medication name from user's list",
-      "dosage": "Dosage (extract from context or use 'As prescribed')",
-      "frequency": "Frequency (e.g., 'Once daily', 'Twice daily', 'Three times daily')",
-      "time": "Best time to take (e.g., '08:00 AM', '08:00 AM and 08:00 PM', 'After meals')"
-    }
-  ],
-  "dietPlan": {
-    "breakfast": [
-      { "name": "Food item", "portion": "Portion size" }
-    ],
-    "lunch": [
-      { "name": "Food item", "portion": "Portion size" }
-    ],
-    "dinner": [
-      { "name": "Food item", "portion": "Portion size" }
-    ],
-    "snacks": [
-      { "name": "Food item", "portion": "Portion size" }
-    ],
-    "restrictions": ["List of food restrictions based on condition"],
-    "recommendations": ["General dietary recommendations"]
-  },
-  "exercisePlan": {
-    "activities": [
-      {
-        "name": "Activity name (e.g., 'Walking', 'Yoga', 'Swimming')",
-        "duration": "Duration (e.g., '30 minutes')",
-        "frequency": "Frequency (e.g., '3 times per week', 'Daily')",
-        "intensity": "Intensity level (e.g., 'Low', 'Moderate', 'High')"
-      }
-    ],
-    "recommendations": ["Exercise recommendations based on condition"]
-  },
-  "weeklySchedule": [
-    {
-      "day": "Monday",
-      "appointments": [
+      "title": "Care Plan Title",
+      "description": "Brief health summary",
+      "problem": "Primary condition(s)",
+      "medications": [
         {
-          "title": "Appointment title (e.g., 'Morning Walk', 'Doctor Consultation', 'Medication')",
-          "type": "medication|exercise|doctor|checkup|other",
-          "time": "Time (e.g., '08:00 AM', '02:00 PM')",
-          "duration": "Duration (e.g., '30 minutes', '1 hour')",
-          "description": "Brief description"
+          "name": "Medication Name",
+          "dosage": "Dosage",
+          "frequency": "Frequency",
+          "time": "Single preferred time string (e.g. '08:00 AM')"
+        }
+      ],
+      "dietPlan": {
+        "breakfast": [{ "name": "Food Item", "portion": "Quantity" }],
+        "lunch": [{ "name": "Food Item", "portion": "Quantity" }],
+        "dinner": [{ "name": "Food Item", "portion": "Quantity" }],
+        "snacks": [{ "name": "Food Item", "portion": "Quantity" }],
+        "restrictions": ["Food to avoid"],
+        "recommendations": ["Dietary tip"]
+      },
+      "exercisePlan": {
+        "activities": [
+            {
+                "name": "Activity Name",
+                "duration": "Duration",
+                "frequency": "Frequency",
+                "intensity": "Intensity"
+            }
+        ],
+        "recommendations": ["Safety tip"]
+      },
+      "weeklySchedule": [
+        {
+          "day": "Monday",
+          "appointments": [
+            {
+              "title": "Event Title",
+              "type": "medication|exercise|doctor|other",
+              "time": "Time string",
+              "duration": "Duration string",
+              "description": "Details"
+            }
+          ]
+        }
+      ],
+      "dailyTasks": [
+        {
+          "title": "Task Name",
+          "description": "Task Details",
+          "time": "Time",
+          "category": "medication|vitals|exercise"
         }
       ]
     }
-  ],
-  "dailyTasks": [
-    {
-      "title": "Task title",
-      "description": "Task description",
-      "time": "Time (e.g., '08:00 AM')",
-      "category": "Category (e.g., 'medication', 'vitals', 'exercise')"
-    }
-  ]
-}
-Generate a realistic weekly schedule with:
-- Medication reminders at appropriate times
-- Exercise sessions spread throughout the week
-- Doctor appointments/checkups as needed
-- Other health-related activities
+    `;
 
-Create a comprehensive 7-day schedule (Monday through Sunday) with appointments distributed appropriately.`
-        },
-        {
-          role: "user",
-          content: `Generate a comprehensive care plan for a patient with:
-- Health Problems: ${Array.from(allProblems).join(', ') || context.problem}
-- ACTUAL Medications (USE THESE EXACT NAMES - DO NOT CREATE NEW ONES): ${Array.from(allMedications).join(', ') || 'None'}
-- Symptoms: ${allSymptoms.join(', ') || context.symptoms.join(', ') || 'None specified'}
-- Medical Recommendations: ${allRecommendations.join(', ') || context.recommendations.join(', ') || 'None specified'}
-- Latest Vitals: ${JSON.stringify(context.vitals)}
-- Lab Values: ${JSON.stringify(latestRecord.labValues || [])}
-
-CRITICAL INSTRUCTIONS:
-1. For medications: Use ONLY the medications listed above. For each medication, suggest appropriate:
-   - Dosage (if not clear, use "As prescribed")
-   - Frequency (Once daily, Twice daily, etc.)
-   - Best time to take (e.g., "08:00 AM", "08:00 AM and 08:00 PM", "After breakfast")
-
-2. Create a DETAILED diet plan with specific meal recommendations:
-   - Breakfast: Specific foods and portions
-   - Lunch: Specific foods and portions
-   - Dinner: Specific foods and portions
-   - Snacks: Healthy snack options
-   - Restrictions: Foods to avoid based on condition
-   - Recommendations: General dietary guidelines
-
-3. Create a DETAILED exercise plan with:
-   - Specific activities (Walking, Yoga, Swimming, etc.)
-   - Duration for each activity
-   - Frequency (e.g., "3 times per week", "Daily")
-   - Intensity level (Low, Moderate, High)
-   - Recommendations: Exercise guidelines
-
-4. Create a complete weekly schedule (Monday-Sunday) with:
-   - Medication reminders using the ACTUAL medication names at scheduled times
-   - Exercise sessions (3-5 times per week) from the exercise plan
-   - Doctor appointments/checkups as needed
-   - Other health activities
-
-Make everything specific, realistic, and tailored to the health condition.`
-        }
-      ],
-      model: "llama-3.1-8b-instant",
-      response_format: { type: "json_object" }
-    });
-
-    const result = completion.choices[0]?.message?.content;
-    if (!result) {
-      throw new Error('No result from AI');
-    }
-
-    const carePlanData = JSON.parse(result);
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    const carePlanData = JSON.parse(responseText);
 
     // Ensure we use actual medications from records, merge with LLM scheduling
     if (actualMedications.length > 0) {
@@ -263,51 +227,51 @@ Make everything specific, realistic, and tailored to the health condition.`
       });
     }
 
-        // Sanitize 'problem' field: If AI returns an array, join it into a string
-        if (Array.isArray(carePlanData.problem)) {
-          carePlanData.problem = carePlanData.problem.join(', ');
-        }
-
-        // Sanitize 'time' fields to prevent arrays (CastError)
-        if (carePlanData.medications) {
-          carePlanData.medications.forEach((med: any) => {
-            if (Array.isArray(med.time)) med.time = med.time.join(', ');
-          });
-        }
-
-        if (carePlanData.dailyTasks) {
-          carePlanData.dailyTasks.forEach((task: any) => {
-            if (Array.isArray(task.time)) task.time = task.time.join(', ');
-          });
-        }
-
-        if (carePlanData.weeklySchedule) {
-          carePlanData.weeklySchedule.forEach((day: any) => {
-            if (day.appointments) {
-              day.appointments.forEach((apt: any) => {
-                if (Array.isArray(apt.time)) apt.time = apt.time.join(', ');
-              });
-            }
-          });
-        }
-
-        // Save or update care plan
-        const carePlan = await CarePlan.findOneAndUpdate(
-          { userId },
-          {
-            userId,
-            ...carePlanData
-          },
-          { new: true, upsert: true }
-        );
-
-        return NextResponse.json({
-          success: true,
-          data: carePlan
-        });
-      } catch (error: unknown) {
-        console.error('Generate Care Plan Error:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
-        return NextResponse.json({ error: errorMessage }, { status: 500 });
-      }
+    // Sanitize 'problem' field: If AI returns an array, join it into a string
+    if (Array.isArray(carePlanData.problem)) {
+      carePlanData.problem = carePlanData.problem.join(', ');
     }
+
+    // Sanitize 'time' fields to prevent arrays (CastError)
+    if (carePlanData.medications) {
+      carePlanData.medications.forEach((med: any) => {
+        if (Array.isArray(med.time)) med.time = med.time.join(', ');
+      });
+    }
+
+    if (carePlanData.dailyTasks) {
+      carePlanData.dailyTasks.forEach((task: any) => {
+        if (Array.isArray(task.time)) task.time = task.time.join(', ');
+      });
+    }
+
+    if (carePlanData.weeklySchedule) {
+      carePlanData.weeklySchedule.forEach((day: any) => {
+        if (day.appointments) {
+          day.appointments.forEach((apt: any) => {
+            if (Array.isArray(apt.time)) apt.time = apt.time.join(', ');
+          });
+        }
+      });
+    }
+
+    // Save or update care plan
+    const carePlan = await CarePlan.findOneAndUpdate(
+      { userId },
+      {
+        userId,
+        ...carePlanData
+      },
+      { new: true, upsert: true }
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: carePlan
+    });
+  } catch (error: unknown) {
+    console.error('Generate Care Plan Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  }
+}

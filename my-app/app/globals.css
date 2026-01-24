@@ -207,3 +207,7 @@
 .shadow-glow {
   box-shadow: 0 0 40px -10px var(--primary);
 }
+
+button:hover {
+  cursor: pointer;
+}

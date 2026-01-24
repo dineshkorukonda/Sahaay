@@ -28,349 +28,112 @@ export async function GET(req: Request) {
         const searchPinCode = url.searchParams.get('pinCode');
         const searchCity = url.searchParams.get('city');
         const searchState = url.searchParams.get('state');
-        const searchQuery = url.searchParams.get('q'); // General location query
+        const searchQuery = url.searchParams.get('q');
+
+        const googleApiKey = process.env.GOOGLE_API_KEY;
+        if (!googleApiKey) {
+            throw new Error('GOOGLE_API_KEY is not defined');
+        }
 
         let lat: number | null = null;
         let lon: number | null = null;
         let searchLocation: { city?: string; state?: string; pinCode?: string } | null = null;
 
-        // If search params provided, use them
+        // --- Geocoding Logic (Simplified for Google Maps) ---
+        // If lat/lon provided, use them
         if (searchLat && searchLon) {
             lat = parseFloat(searchLat);
             lon = parseFloat(searchLon);
-        } else if (searchPinCode) {
-            // Get coordinates from PIN code
-            try {
-                const pinRes = await fetch(`https://api.postalpincode.in/pincode/${searchPinCode}`);
-                const pinData = await pinRes.json();
-                
-                if (pinData[0]?.Status === 'Success' && pinData[0]?.PostOffice?.[0]) {
-                    const postOffice = pinData[0].PostOffice[0];
-                    const city = postOffice.District || postOffice.Name || postOffice.Block;
-                    const state = postOffice.State;
-                    
-                    searchLocation = {
-                        city: city,
-                        state: state,
-                        pinCode: searchPinCode
-                    };
-                    
-                    // Try multiple methods to get coordinates
-                    // Method 1: Direct PIN code search in Nominatim
-                    try {
-                        const controller1 = new AbortController();
-                        const timeoutId1 = setTimeout(() => controller1.abort(), 5000);
-                        
-                        const nominatimRes1 = await fetch(
-                            `https://nominatim.openstreetmap.org/search?format=json&postalcode=${searchPinCode}&country=India&limit=1`,
-                            {
-                                headers: {
-                                    'User-Agent': 'Sahaay-Healthcare-App/1.0'
-                                },
-                                signal: controller1.signal
-                            }
-                        );
-                        clearTimeout(timeoutId1);
-                        
-                        if (nominatimRes1.ok) {
-                            const nominatimData1 = await nominatimRes1.json();
-                            if (nominatimData1 && nominatimData1.length > 0) {
-                                lat = parseFloat(nominatimData1[0].lat);
-                                lon = parseFloat(nominatimData1[0].lon);
-                            }
-                        }
-                    } catch (err1) {
-                        // Fall through to next method
-                    }
-                    
-                    // Method 2: Use city and state from postal API if PIN code search failed
-                    if ((!lat || !lon) && city && state) {
-                        try {
-                            const controller2 = new AbortController();
-                            const timeoutId2 = setTimeout(() => controller2.abort(), 5000);
-                            
-                            const locationQuery = `${city}, ${state}, India`;
-                            const nominatimRes2 = await fetch(
-                                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationQuery)}&limit=1&countrycodes=in`,
-                                {
-                                    headers: {
-                                        'User-Agent': 'Sahaay-Healthcare-App/1.0'
-                                    },
-                                    signal: controller2.signal
-                                }
-                            );
-                            clearTimeout(timeoutId2);
-                            
-                            if (nominatimRes2.ok) {
-                                const nominatimData2 = await nominatimRes2.json();
-                                if (nominatimData2 && nominatimData2.length > 0) {
-                                    lat = parseFloat(nominatimData2[0].lat);
-                                    lon = parseFloat(nominatimData2[0].lon);
-                                }
-                            }
-                        } catch (err2) {
-                            console.error('Error fetching coordinates from city/state:', err2);
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error('Error fetching location from PIN code:', err);
-            }
-        } else if (searchQuery || (searchCity && searchState)) {
-            // Handle city/state or general location query (e.g., "Visakhapatnam, Andhra Pradesh")
-            try {
-                const locationQuery = searchQuery || `${searchCity}, ${searchState}, India`;
-                
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-                
-                const nominatimRes = await fetch(
-                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationQuery)}&limit=1&countrycodes=in`,
-                    {
-                        headers: {
-                            'User-Agent': 'Sahaay-Healthcare-App/1.0'
-                        },
-                        signal: controller.signal
-                    }
-                );
-                clearTimeout(timeoutId);
-                
-                if (nominatimRes.ok) {
-                    const nominatimData = await nominatimRes.json();
-                    if (nominatimData && nominatimData.length > 0) {
-                        lat = parseFloat(nominatimData[0].lat);
-                        lon = parseFloat(nominatimData[0].lon);
-                        
-                        // Extract location info
-                        const addr = nominatimData[0];
-                        searchLocation = {
-                            city: addr.address?.city || addr.address?.town || addr.address?.county || searchCity,
-                            state: addr.address?.state || searchState,
-                            pinCode: addr.address?.postcode
-                        };
-                    }
-                }
-            } catch (err) {
-                console.error('Error fetching location from city/state:', err);
+        }
+        // If text query provided, geocode it
+        else if (searchQuery || searchPinCode || (searchCity && searchState)) {
+            const query = searchQuery ||
+                (searchPinCode ? `pincode ${searchPinCode}` : `${searchCity}, ${searchState}`);
+
+            const geoRes = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${googleApiKey}`
+            );
+            const geoData = await geoRes.json();
+
+            if (geoData.status === 'OK' && geoData.results?.[0]) {
+                const location = geoData.results[0].geometry.location;
+                lat = location.lat;
+                lon = location.lng;
+
+                // Extract address components
+                const addressComponents = geoData.results[0].address_components;
+                searchLocation = {
+                    city: addressComponents.find((c: any) => c.types.includes('locality'))?.long_name || searchCity,
+                    state: addressComponents.find((c: any) => c.types.includes('administrative_area_level_1'))?.long_name || searchState,
+                    pinCode: addressComponents.find((c: any) => c.types.includes('postal_code'))?.long_name || searchPinCode
+                };
             }
         }
+        // Fallback to profile location
+        else if (profile?.location?.latitude && profile?.location?.longitude) {
+            lat = profile.location.latitude;
+            lon = profile.location.longitude;
+        }
 
-        // Fallback to profile location if no search params
         if (!lat || !lon) {
-            if (profile?.location?.latitude && profile?.location?.longitude) {
-                lat = profile.location.latitude;
-                lon = profile.location.longitude;
-            } else if (!profile || !profile.location?.pinCode) {
-                // Return empty clinics if no location
-                return NextResponse.json({
-                    success: true,
-                    clinics: [],
-                    userLocation: null,
-                    searchLocation: null
-                });
-            }
+            return NextResponse.json({
+                success: true,
+                clinics: [],
+                userLocation: null,
+                searchLocation: null
+            });
         }
 
-        // Try to fetch real hospitals/clinics from OpenStreetMap Overpass API (FREE)
-        let clinics = [];
-        
-        if (lat && lon && !isNaN(lat) && !isNaN(lon)) {
+        // --- Fetch Facilities using Google Places API ---
+        const radius = 5000; // 5km radius
+        const facilities: any[] = [];
+
+        // Define types to search
+        const searchTypes = [
+            { type: 'HOSPITAL', keyword: 'hospital' },
+            { type: 'CLINIC', keyword: 'clinic' },
+            { type: 'PHARMACY', keyword: 'pharmacy' },
+            { type: 'NGO', keyword: 'ngo healthcare' }
+        ];
+
+        // Fetch concurrently
+        await Promise.all(searchTypes.map(async (searchType) => {
             try {
-                // Use OpenStreetMap Overpass API to find nearby hospitals and clinics
-                // This is completely free and doesn't require an API key
-                const radius = 10000; // 10km radius in meters (increased for better results)
-                console.log(`Searching for facilities near coordinates: ${lat}, ${lon} with radius ${radius}m`);
-                
-                // Overpass QL query to find hospitals, clinics, doctors, pharmacies, and NGOs
-                const overpassQuery = `
-                    [out:json][timeout:25];
-                    (
-                      node["amenity"~"^(hospital|clinic|doctors|pharmacy)$"](around:${radius},${lat},${lon});
-                      way["amenity"~"^(hospital|clinic|doctors|pharmacy)$"](around:${radius},${lat},${lon});
-                      relation["amenity"~"^(hospital|clinic|doctors|pharmacy)$"](around:${radius},${lat},${lon});
-                      node["office"~"^(ngo|non_profit|association|charity)$"](around:${radius},${lat},${lon});
-                      way["office"~"^(ngo|non_profit|association|charity)$"](around:${radius},${lat},${lon});
-                      relation["office"~"^(ngo|non_profit|association|charity)$"](around:${radius},${lat},${lon});
-                      node["healthcare"~"^(.*)$"](around:${radius},${lat},${lon});
-                      way["healthcare"~"^(.*)$"](around:${radius},${lat},${lon});
-                    );
-                    out center meta;
-                `;
-                
-                const overpassResponse = await fetch('https://overpass-api.de/api/interpreter', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `data=${encodeURIComponent(overpassQuery)}`,
-                });
-                
-                if (overpassResponse.ok) {
-                    const osmData = await overpassResponse.json();
-                    
-                    if (osmData.elements && osmData.elements.length > 0) {
-                        // Process OSM elements (limit to 10 to reduce API calls)
-                        // Process in smaller batches to avoid overwhelming APIs
-                        const elementsToProcess = osmData.elements.slice(0, 10);
-                        const clinicsPromises = elementsToProcess.map(async (element: any) => {
-                            try {
-                                const elementLat = element.lat || element.center?.lat;
-                                const elementLon = element.lon || element.center?.lon;
-                                
-                                if (!elementLat || !elementLon) return null;
-                                
-                                // Calculate distance (ensure coordinates are valid)
-                                if (isNaN(elementLat) || isNaN(elementLon)) {
-                                    return null;
-                                }
-                                const distance = calculateDistance(lat, lon, elementLat, elementLon);
-                                
-                                // Get name and address from OSM tags
-                                const name = element.tags?.name || element.tags?.['name:en'] || 'Healthcare Facility';
-                                const amenity = element.tags?.amenity || element.tags?.office || 'clinic';
-                                // Determine type
-                                let type = 'CLINIC';
-                                if (amenity === 'hospital') type = 'HOSPITAL';
-                                else if (amenity === 'pharmacy') type = 'PHARMACY';
-                                else if (amenity === 'doctors') type = 'CLINIC';
-                                else if (amenity === 'ngo' || amenity === 'non_profit' || amenity === 'association') type = 'NGO';
-                                
-                                // Build address from OSM tags (primary source, more reliable)
-                                let address = '';
-                                let phone = 'N/A';
-                                
-                                // Use OSM tags first (more reliable and faster)
-                                if (element.tags) {
-                                    const addrParts = [
-                                        element.tags['addr:street'] || element.tags['addr:road'],
-                                        element.tags['addr:city'] || element.tags['addr:town'] || element.tags['addr:village'],
-                                        element.tags['addr:state'],
-                                        element.tags['addr:postcode'] ? `PIN: ${element.tags['addr:postcode']}` : ''
-                                    ].filter(Boolean);
-                                    
-                                    if (addrParts.length > 0) {
-                                        address = addrParts.join(', ');
-                                    }
-                                }
-                                
-                                // Only try Nominatim if we don't have address from OSM tags (with timeout and error handling)
-                                if (!address) {
-                                    try {
-                                        // Create AbortController for timeout
-                                        const controller = new AbortController();
-                                        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-                                        
-                                        const nominatimResponse = await fetch(
-                                            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${elementLat}&lon=${elementLon}&addressdetails=1`,
-                                            {
-                                                headers: {
-                                                    'User-Agent': 'Sahaay-Healthcare-App/1.0'
-                                                },
-                                                signal: controller.signal
-                                            }
-                                        );
-                                        
-                                        clearTimeout(timeoutId);
-                                        
-                                        if (nominatimResponse.ok) {
-                                            const nominatimData = await nominatimResponse.json();
-                                            if (nominatimData.address) {
-                                                const addr = nominatimData.address;
-                                                const addressParts = [
-                                                    addr.road,
-                                                    addr.suburb || addr.neighbourhood,
-                                                    addr.city || addr.town || addr.village,
-                                                    addr.state,
-                                                    addr.postcode ? `PIN: ${addr.postcode}` : ''
-                                                ].filter(Boolean);
-                                                address = addressParts.join(', ') || nominatimData.display_name;
-                                            }
-                                        }
-                                    } catch (nominatimErr) {
-                                        // Silently fail - we'll use coordinates as fallback
-                                        // Don't log to avoid spam
-                                    }
-                                }
-                                
-                                // Final fallback: use coordinates if no address found
-                                if (!address) {
-                                    address = `${elementLat.toFixed(4)}, ${elementLon.toFixed(4)}`;
-                                }
-                                
-                                // Get phone from OSM tags
-                                phone = element.tags?.['phone'] || element.tags?.['contact:phone'] || element.tags?.['phone:mobile'] || 'N/A';
-                                
-                                // Get opening hours
-                                const openingHours = element.tags?.['opening_hours'] || 'Hours not available';
-                                
-                                return {
-                                    id: element.id?.toString() || `${elementLat}-${elementLon}`,
-                                    name: name,
-                                    address: address,
-                                    distance: `${distance.toFixed(1)} km`,
-                                    phone: phone,
-                                    hours: openingHours,
-                                    latitude: elementLat,
-                                    longitude: elementLon,
-                                    type: type,
-                                    amenity: amenity
-                                };
-                            } catch (err) {
-                                console.error('Error processing OSM element:', err);
-                            }
-                            return null;
-                        });
-                        
-                        // Process clinics with better error handling
-                        // Use Promise.allSettled to continue even if some fail
-                        const clinicsResults = await Promise.allSettled(clinicsPromises);
-                        clinics = clinicsResults
-                            .filter((result): result is PromiseFulfilledResult<any> => 
-                                result.status === 'fulfilled' && result.value !== null
-                            )
-                            .map(result => result.value)
-                            .sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance))
-                            .slice(0, 10); // Limit to top 10 closest
-                    }
+                // Use Nearby Search (New) or Text Search
+                // Using Text Search for flexibility with keywords like "NGO"
+                const placesRes = await fetch(
+                    `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchType.keyword)}&location=${lat},${lon}&radius=${radius}&key=${googleApiKey}`
+                );
+
+                const placesData = await placesRes.json();
+
+                if (placesData.status === 'OK' && placesData.results) {
+                    const mapped = placesData.results.slice(0, 5).map((place: any) => ({ // Limit 5 per category
+                        id: place.place_id,
+                        name: place.name,
+                        address: place.formatted_address,
+                        distance: calculateDistance(lat!, lon!, place.geometry.location.lat, place.geometry.location.lng).toFixed(1) + ' km',
+                        phone: 'View on map', // Phone requires Place Details API call, skipping for speed/cost unless needed
+                        hours: place.opening_hours?.open_now ? 'Open Now' : 'Check hours',
+                        latitude: place.geometry.location.lat,
+                        longitude: place.geometry.location.lng,
+                        type: searchType.type,
+                        amenity: searchType.keyword
+                    }));
+                    facilities.push(...mapped);
                 }
             } catch (err) {
-                console.error('Error fetching from OpenStreetMap:', err);
+                console.error(`Error fetching ${searchType.type}:`, err);
             }
-        }
+        }));
 
-        // Return empty array if no clinics found (no dummy data)
-        // Frontend will show "No facilities found" message
-
-        // Ensure we return coordinates even if clinics are empty
-        const responseLocation = lat && lon ? {
-            latitude: lat,
-            longitude: lon
-        } : (profile?.location?.latitude && profile?.location?.longitude ? {
-            latitude: profile.location.latitude,
-            longitude: profile.location.longitude
-        } : null);
-
-        // Debug logging
-        console.log('Nearby Clinics API Response:', {
-            hasCoordinates: !!(lat && lon),
-            coordinates: lat && lon ? { lat, lon } : null,
-            clinicsCount: clinics.length,
-            searchLocation,
-            responseLocation,
-            searchParams: {
-                searchLat,
-                searchLon,
-                searchPinCode,
-                searchQuery,
-                searchCity,
-                searchState
-            }
-        });
+        // Sort by distance
+        const sortedFacilities = facilities.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
 
         return NextResponse.json({
             success: true,
-            clinics,
-            userLocation: responseLocation,
+            clinics: sortedFacilities,
+            userLocation: { latitude: lat, longitude: lon },
             searchLocation: searchLocation || (profile?.location ? {
                 city: profile.location.city,
                 state: profile.location.state,
@@ -380,7 +143,6 @@ export async function GET(req: Request) {
 
     } catch (error: unknown) {
         console.error('Nearby Clinics Error:', error);
-        // Return empty clinics on error (no dummy data)
         return NextResponse.json({
             success: true,
             clinics: [],
@@ -395,7 +157,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
     const R = 6371; // Radius of the Earth in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
+    const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
         Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
