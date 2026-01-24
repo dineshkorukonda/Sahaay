@@ -7,7 +7,7 @@ import { Loader } from "@/components/ui/loader";
 import { useToast } from "@/components/ui/toast";
 
 // Dynamically import map component to avoid SSR issues
-const MapComponent = dynamic(() => import('./MapComponent'), { 
+const MapComponent = dynamic(() => import('./MapComponent'), {
     ssr: false,
     loading: () => <div className="h-full w-full flex items-center justify-center bg-gray-100">Loading map...</div>
 });
@@ -23,7 +23,7 @@ export default function NearbyCarePage() {
     const [pinCode, setPinCode] = useState('');
     const [cityState, setCityState] = useState('');
     const [locationLoading, setLocationLoading] = useState(false);
-    const [currentLocation, setCurrentLocation] = useState<{city?: string; state?: string; pinCode?: string} | null>(null);
+    const [currentLocation, setCurrentLocation] = useState<{ city?: string; state?: string; pinCode?: string } | null>(null);
     const { showToast } = useToast();
 
     useEffect(() => {
@@ -54,20 +54,21 @@ export default function NearbyCarePage() {
 
             const res = await fetch(url);
             const json = await res.json();
-            
+
             if (json.success) {
                 console.log('API Response:', {
                     userLocation: json.userLocation,
                     clinicsCount: json.clinics?.length || 0,
                     searchLocation: json.searchLocation,
-                    firstClinic: json.clinics?.[0]
+                    firstClinic: json.clinics?.[0],
+                    debugErrors: json.debugErrors // Log any errors from backend
                 });
-                
+
                 // Set facilities
                 if (json.clinics) {
                     setFacilities(json.clinics);
                 }
-                
+
                 // PRIORITY 1: Set map center to userLocation from API (this is the search location)
                 if (json.userLocation && json.userLocation.latitude && json.userLocation.longitude) {
                     const userLoc: [number, number] = [
@@ -79,7 +80,7 @@ export default function NearbyCarePage() {
                     setUserLocation(userLoc);
                     setMapCenter(userLoc);
                     setMapKey(prev => prev + 1); // Force map component re-render
-                } 
+                }
                 // PRIORITY 2: Use first facility location if no userLocation
                 else if (json.clinics && json.clinics.length > 0) {
                     const firstFacility = json.clinics[0];
@@ -201,8 +202,8 @@ export default function NearbyCarePage() {
         }
     };
 
-    const filteredFacilities = selectedType === 'all' 
-        ? facilities 
+    const filteredFacilities = selectedType === 'all'
+        ? facilities
         : facilities.filter(f => f.type === selectedType);
 
     const getTypeColor = (type: string) => {
@@ -243,11 +244,11 @@ export default function NearbyCarePage() {
                             <div className="flex items-center gap-2 text-sm">
                                 <MapPin className="h-4 w-4 text-emerald-600" />
                                 <span className="text-emerald-800 font-medium">
-                                    {currentLocation.city && currentLocation.state 
+                                    {currentLocation.city && currentLocation.state
                                         ? `${currentLocation.city}, ${currentLocation.state}`
-                                        : currentLocation.pinCode 
-                                        ? `PIN: ${currentLocation.pinCode}`
-                                        : 'Current Location'}
+                                        : currentLocation.pinCode
+                                            ? `PIN: ${currentLocation.pinCode}`
+                                            : 'Current Location'}
                                 </span>
                             </div>
                         </div>
@@ -263,43 +264,38 @@ export default function NearbyCarePage() {
                     </div>
 
                     <div className="flex gap-2 text-xs overflow-x-auto pb-2 scrollbar-none">
-                        <button 
+                        <button
                             onClick={() => setSelectedType('all')}
-                            className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-medium transition-colors ${
-                                selectedType === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-foreground hover:bg-gray-200'
-                            }`}
+                            className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-medium transition-colors ${selectedType === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-foreground hover:bg-gray-200'
+                                }`}
                         >
                             All Facilities
                         </button>
-                        <button 
+                        <button
                             onClick={() => setSelectedType('HOSPITAL')}
-                            className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-medium transition-colors ${
-                                selectedType === 'HOSPITAL' ? 'bg-primary text-white' : 'bg-gray-100 text-foreground hover:bg-gray-200'
-                            }`}
+                            className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-medium transition-colors ${selectedType === 'HOSPITAL' ? 'bg-primary text-white' : 'bg-gray-100 text-foreground hover:bg-gray-200'
+                                }`}
                         >
                             Hospitals
                         </button>
-                        <button 
+                        <button
                             onClick={() => setSelectedType('CLINIC')}
-                            className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-medium transition-colors ${
-                                selectedType === 'CLINIC' ? 'bg-primary text-white' : 'bg-gray-100 text-foreground hover:bg-gray-200'
-                            }`}
+                            className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-medium transition-colors ${selectedType === 'CLINIC' ? 'bg-primary text-white' : 'bg-gray-100 text-foreground hover:bg-gray-200'
+                                }`}
                         >
                             Clinics
                         </button>
-                        <button 
+                        <button
                             onClick={() => setSelectedType('PHARMACY')}
-                            className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-medium transition-colors ${
-                                selectedType === 'PHARMACY' ? 'bg-primary text-white' : 'bg-gray-100 text-foreground hover:bg-gray-200'
-                            }`}
+                            className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-medium transition-colors ${selectedType === 'PHARMACY' ? 'bg-primary text-white' : 'bg-gray-100 text-foreground hover:bg-gray-200'
+                                }`}
                         >
                             Pharmacies
                         </button>
-                        <button 
+                        <button
                             onClick={() => setSelectedType('NGO')}
-                            className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-medium transition-colors ${
-                                selectedType === 'NGO' ? 'bg-primary text-white' : 'bg-gray-100 text-foreground hover:bg-gray-200'
-                            }`}
+                            className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-medium transition-colors ${selectedType === 'NGO' ? 'bg-primary text-white' : 'bg-gray-100 text-foreground hover:bg-gray-200'
+                                }`}
                         >
                             NGOs
                         </button>
@@ -312,7 +308,7 @@ export default function NearbyCarePage() {
                             <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
                             <p className="text-muted-foreground font-medium mb-2">No facilities found</p>
                             <p className="text-sm text-muted-foreground">
-                                {currentLocation 
+                                {currentLocation
                                     ? `No healthcare facilities found near ${currentLocation.city || currentLocation.pinCode || 'this location'}.`
                                     : 'No healthcare facilities found in your area. Try searching a different location.'}
                             </p>
@@ -337,7 +333,7 @@ export default function NearbyCarePage() {
                                 </div>
 
                                 <div className="flex gap-3">
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             if (center.latitude && center.longitude) {
                                                 window.open(`https://www.google.com/maps/dir/?api=1&destination=${center.latitude},${center.longitude}`, '_blank');
@@ -348,7 +344,7 @@ export default function NearbyCarePage() {
                                         <Navigation className="h-4 w-4" /> Directions
                                     </button>
                                     {center.phone && center.phone !== 'N/A' && (
-                                        <button 
+                                        <button
                                             onClick={() => window.open(`tel:${center.phone}`)}
                                             className="flex-1 bg-white border border-primary text-primary py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-primary/5 transition-colors"
                                         >
@@ -365,7 +361,7 @@ export default function NearbyCarePage() {
             {/* Right Panel - Map */}
             <div className={`flex-1 relative bg-gray-100 ${showLocationModal ? 'pointer-events-none' : ''}`}>
                 {mapCenter && mapCenter[0] && mapCenter[1] && !isNaN(mapCenter[0]) && !isNaN(mapCenter[1]) ? (
-                    <MapComponent 
+                    <MapComponent
                         key={`map-${mapKey}-${mapCenter[0].toFixed(6)}-${mapCenter[1].toFixed(6)}`}
                         center={mapCenter}
                         userLocation={userLocation}
