@@ -35,6 +35,8 @@ export default function DashboardPage() {
 
     const { user, profile, stats, actions } = data || {};
     const userName = user?.name || "User";
+    const streak = stats?.streak || 0;
+    const points = stats?.points || 0;
 
     return (
         <div className="p-8 min-h-screen space-y-8">
@@ -74,8 +76,22 @@ export default function DashboardPage() {
                 <div className="lg:col-span-2 space-y-6">
                     <div className="space-y-2">
                         <h2 className="text-4xl font-bold tracking-tight text-foreground">Good Morning, {userName}</h2>
-                        {stats?.streak ? (
-                            <p className="text-muted-foreground text-lg">You&apos;re on a {stats.streak}-day streak! Keep up the great work and stay healthy.</p>
+                        <div className="flex items-center gap-4">
+                            {streak > 0 && (
+                                <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full border border-orange-200">
+                                    <Flame className="h-5 w-5 text-orange-500" />
+                                    <span className="text-orange-700 font-bold">{streak}-day streak</span>
+                                </div>
+                            )}
+                            {points > 0 && (
+                                <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-200">
+                                    <Medal className="h-5 w-5 text-emerald-500" />
+                                    <span className="text-emerald-700 font-bold">{points} points</span>
+                                </div>
+                            )}
+                        </div>
+                        {streak > 0 ? (
+                            <p className="text-muted-foreground text-lg">You&apos;re on a {streak}-day streak! Keep up the great work and stay healthy.</p>
                         ) : (
                             <p className="text-muted-foreground text-lg">Welcome to your health dashboard. Start tracking your health journey today.</p>
                         )}

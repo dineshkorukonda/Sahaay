@@ -84,7 +84,11 @@ export async function POST(req: Request) {
             hasCompletedOnboarding
         });
 
-        return NextResponse.json({ 
+        // Check if request is from mobile (has Authorization header or specific header)
+        const isMobileRequest = req.headers.get('x-client-type') === 'mobile' || 
+                                req.headers.get('authorization') !== null;
+
+        const responseData: any = { 
             success: true, 
             user: { 
                 id: user._id, 
@@ -101,7 +105,14 @@ export async function POST(req: Request) {
                     emergencyContact: !!profile?.emergencyContact
                 }
             }
-        }, { status: 200 });
+        };
+
+        // Return token in response body for mobile apps
+        if (isMobileRequest) {
+            responseData.token = token;
+        }
+
+        return NextResponse.json(responseData, { status: 200 });
 
     } catch (error: unknown) {
         console.error('Login Error:', error);

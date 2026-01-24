@@ -13,13 +13,23 @@ const JWT_SECRET = new TextEncoder().encode(
 export async function GET(req: Request) {
     try {
         await connectDB();
-        const token = (await cookies()).get('token')?.value;
-        if (!token) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+        
+        // Support both Bearer token (mobile) and cookie (web)
+        const authHeader = req.headers.get('authorization');
+        let userId: string;
 
-        const { payload } = await jwtVerify(token, JWT_SECRET);
-        const userId = payload.userId as string;
+        if (authHeader?.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            const { payload } = await jwtVerify(token, JWT_SECRET);
+            userId = payload.userId as string;
+        } else {
+            const token = (await cookies()).get('token')?.value;
+            if (!token) {
+                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            }
+            const { payload } = await jwtVerify(token, JWT_SECRET);
+            userId = payload.userId as string;
+        }
 
         // Fetch Data
         const user = await User.findById(userId);

@@ -64,7 +64,11 @@ export async function POST(req: Request) {
             !!profile.location?.pinCode && 
             !!profile.emergencyContact;
 
-        return NextResponse.json({ 
+        // Check if request is from mobile (has Authorization header or specific header)
+        const isMobileRequest = req.headers.get('x-client-type') === 'mobile' || 
+                                req.headers.get('authorization') !== null;
+
+        const responseData: any = { 
             success: true, 
             message: 'Email verified successfully',
             user: { 
@@ -74,7 +78,14 @@ export async function POST(req: Request) {
                 mobile: user.mobile 
             },
             hasCompletedOnboarding
-        }, { status: 200 });
+        };
+
+        // Return token in response body for mobile apps
+        if (isMobileRequest) {
+            responseData.token = token;
+        }
+
+        return NextResponse.json(responseData, { status: 200 });
 
     } catch (error: unknown) {
         console.error('OTP Verification Error:', error);

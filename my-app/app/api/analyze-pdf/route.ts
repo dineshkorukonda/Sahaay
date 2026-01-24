@@ -13,13 +13,22 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function POST(req: Request) {
     try {
-        // Verify User
-        const token = (await cookies()).get('token')?.value;
-        if (!token) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        // Verify User - Support both Bearer token (mobile) and cookie (web)
+        const authHeader = req.headers.get('authorization');
+        let userId: string;
+
+        if (authHeader?.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            const { payload} = await jwtVerify(token, JWT_SECRET);
+            userId = payload.userId as string;
+        } else {
+            const token = (await cookies()).get('token')?.value;
+            if (!token) {
+                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            }
+            const { payload } = await jwtVerify(token, JWT_SECRET);
+            userId = payload.userId as string;
         }
-        const { payload } = await jwtVerify(token, JWT_SECRET);
-        const userId = payload.userId as string;
 
         const formData = await req.formData();
         const file = formData.get('file') as File | null;

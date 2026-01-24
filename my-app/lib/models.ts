@@ -366,3 +366,97 @@ const BadgeSchema: Schema<IBadge> = new Schema({
 }, { timestamps: true });
 
 export const Badge: Model<IBadge> = mongoose.models.Badge || mongoose.model<IBadge>('Badge', BadgeSchema);
+
+// --- Community Post Schema ---
+export interface ICommunityPost extends Document {
+    userId: mongoose.Types.ObjectId;
+    author: string; // User's name
+    avatar?: string; // User's avatar or initials
+    content: string;
+    category: string; // 'Diabetes Warriors', 'Ask the Community', 'Health Tips', etc.
+    likes: mongoose.Types.ObjectId[]; // Array of user IDs who liked
+    comments: mongoose.Types.ObjectId[]; // Array of comment IDs
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const CommunityPostSchema: Schema<ICommunityPost> = new Schema({
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    author: { type: String, required: true },
+    avatar: { type: String },
+    content: { type: String, required: true },
+    category: { type: String, required: true },
+    likes: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    comments: [{ type: Schema.Types.ObjectId, ref: 'CommunityComment' }]
+}, { timestamps: true });
+
+// --- Community Comment Schema ---
+export interface ICommunityComment extends Document {
+    postId: mongoose.Types.ObjectId;
+    userId: mongoose.Types.ObjectId;
+    author: string;
+    avatar?: string;
+    content: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const CommunityCommentSchema: Schema<ICommunityComment> = new Schema({
+    postId: { type: Schema.Types.ObjectId, ref: 'CommunityPost', required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    author: { type: String, required: true },
+    avatar: { type: String },
+    content: { type: String, required: true }
+}, { timestamps: true });
+
+// --- Community Group Schema ---
+export interface ICommunityGroup extends Document {
+    name: string;
+    description: string;
+    image?: string;
+    tags: string[];
+    members: mongoose.Types.ObjectId[]; // Array of user IDs
+    createdBy: mongoose.Types.ObjectId;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const CommunityGroupSchema: Schema<ICommunityGroup> = new Schema({
+    name: { type: String, required: true },
+    description: { type: String, required: true },
+    image: { type: String },
+    tags: [{ type: String }],
+    members: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+}, { timestamps: true });
+
+// --- Community Event Schema ---
+export interface ICommunityEvent extends Document {
+    title: string;
+    description?: string;
+    date: Date;
+    location: string;
+    type: 'Online' | 'Offline';
+    link?: string; // For online events
+    attendees: mongoose.Types.ObjectId[]; // Array of user IDs
+    createdBy: mongoose.Types.ObjectId;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const CommunityEventSchema: Schema<ICommunityEvent> = new Schema({
+    title: { type: String, required: true },
+    description: { type: String },
+    date: { type: Date, required: true },
+    location: { type: String, required: true },
+    type: { type: String, enum: ['Online', 'Offline'], required: true },
+    link: { type: String },
+    attendees: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+}, { timestamps: true });
+
+// Export Community Models
+export const CommunityPost: Model<ICommunityPost> = mongoose.models.CommunityPost || mongoose.model<ICommunityPost>('CommunityPost', CommunityPostSchema);
+export const CommunityComment: Model<ICommunityComment> = mongoose.models.CommunityComment || mongoose.model<ICommunityComment>('CommunityComment', CommunityCommentSchema);
+export const CommunityGroup: Model<ICommunityGroup> = mongoose.models.CommunityGroup || mongoose.model<ICommunityGroup>('CommunityGroup', CommunityGroupSchema);
+export const CommunityEvent: Model<ICommunityEvent> = mongoose.models.CommunityEvent || mongoose.model<ICommunityEvent>('CommunityEvent', CommunityEventSchema);
