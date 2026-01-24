@@ -34,6 +34,27 @@ export interface IMedicalRecord extends Document {
     fileUrl?: string;
     fileType?: string;
     fileSize?: number;
+    // Enhanced extracted data
+    vitals?: {
+        bloodPressure?: string;
+        heartRate?: number;
+        temperature?: number;
+        weight?: number;
+        glucose?: number;
+        bmi?: number;
+    };
+    labValues?: Array<{
+        name: string;
+        value: string;
+        unit?: string;
+        normalRange?: string;
+    }>;
+    reportDate?: Date;
+    doctorName?: string;
+    hospitalName?: string;
+    diagnosis?: string;
+    symptoms?: string[];
+    recommendations?: string[];
 }
 
 const MedicalRecordSchema: Schema<IMedicalRecord> = new Schema({
@@ -45,7 +66,28 @@ const MedicalRecordSchema: Schema<IMedicalRecord> = new Schema({
     fileName: { type: String },
     fileUrl: { type: String },
     fileType: { type: String },
-    fileSize: { type: Number }
+    fileSize: { type: Number },
+    // Enhanced extracted data
+    vitals: {
+        bloodPressure: { type: String },
+        heartRate: { type: Number },
+        temperature: { type: Number },
+        weight: { type: Number },
+        glucose: { type: Number },
+        bmi: { type: Number }
+    },
+    labValues: [{
+        name: { type: String },
+        value: { type: String },
+        unit: { type: String },
+        normalRange: { type: String }
+    }],
+    reportDate: { type: Date },
+    doctorName: { type: String },
+    hospitalName: { type: String },
+    diagnosis: { type: String },
+    symptoms: [{ type: String }],
+    recommendations: [{ type: String }]
 }, { timestamps: true });
 
 // --- Profile Schema ---
@@ -160,6 +202,7 @@ export interface ICarePlan extends Document {
     userId: mongoose.Types.ObjectId;
     title: string;
     description?: string;
+    problem?: string; // Associated health problem/condition
     medications?: Array<{
         name: string;
         dosage: string;
@@ -173,6 +216,42 @@ export interface ICarePlan extends Document {
         time?: string;
         status: 'pending' | 'completed' | 'missed';
     }>;
+    dietPlan?: {
+        breakfast?: string;
+        lunch?: string;
+        dinner?: string;
+        snacks?: string;
+        restrictions?: string[];
+        recommendations?: string[];
+    };
+    exercisePlan?: {
+        activities?: Array<{
+            name: string;
+            duration: string;
+            frequency: string;
+            intensity?: string;
+        }>;
+        recommendations?: string[];
+    };
+    dailyTasks?: Array<{
+        title: string;
+        description?: string;
+        time?: string;
+        status: 'pending' | 'completed' | 'missed';
+        category?: string;
+    }>;
+    weeklySchedule?: Array<{
+        day: string; // 'Monday', 'Tuesday', etc.
+        date?: string; // ISO date string
+        appointments?: Array<{
+            title: string;
+            type: 'medication' | 'exercise' | 'doctor' | 'checkup' | 'other';
+            time: string; // e.g., '08:00 AM'
+            duration?: string;
+            description?: string;
+            status?: 'pending' | 'completed' | 'missed';
+        }>;
+    }>;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -181,6 +260,7 @@ const CarePlanSchema: Schema<ICarePlan> = new Schema({
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     title: { type: String, required: true },
     description: { type: String },
+    problem: { type: String },
     medications: [{
         name: { type: String, required: true },
         dosage: { type: String },
@@ -193,6 +273,42 @@ const CarePlanSchema: Schema<ICarePlan> = new Schema({
         type: { type: String },
         time: { type: String },
         status: { type: String, enum: ['pending', 'completed', 'missed'], default: 'pending' }
+    }],
+    dietPlan: {
+        breakfast: { type: String },
+        lunch: { type: String },
+        dinner: { type: String },
+        snacks: { type: String },
+        restrictions: [{ type: String }],
+        recommendations: [{ type: String }]
+    },
+    exercisePlan: {
+        activities: [{
+            name: { type: String },
+            duration: { type: String },
+            frequency: { type: String },
+            intensity: { type: String }
+        }],
+        recommendations: [{ type: String }]
+    },
+    dailyTasks: [{
+        title: { type: String, required: true },
+        description: { type: String },
+        time: { type: String },
+        status: { type: String, enum: ['pending', 'completed', 'missed'], default: 'pending' },
+        category: { type: String }
+    }],
+    weeklySchedule: [{
+        day: { type: String, required: true },
+        date: { type: String },
+        appointments: [{
+            title: { type: String, required: true },
+            type: { type: String, enum: ['medication', 'exercise', 'doctor', 'checkup', 'other'], default: 'other' },
+            time: { type: String, required: true },
+            duration: { type: String },
+            description: { type: String },
+            status: { type: String, enum: ['pending', 'completed', 'missed'], default: 'pending' }
+        }]
     }]
 }, { timestamps: true });
 
@@ -205,3 +321,33 @@ export const Profile: Model<IProfile> = mongoose.models.Profile || mongoose.mode
 export const FamilyMember: Model<IFamilyMember> = mongoose.models.FamilyMember || mongoose.model<IFamilyMember>('FamilyMember', FamilyMemberSchema);
 export const HealthStats: Model<IHealthStats> = mongoose.models.HealthStats || mongoose.model<IHealthStats>('HealthStats', HealthStatsSchema);
 export const CarePlan: Model<ICarePlan> = mongoose.models.CarePlan || mongoose.model<ICarePlan>('CarePlan', CarePlanSchema);
+
+// --- Badge/Achievement Schema ---
+export interface IBadge extends Document {
+    userId: mongoose.Types.ObjectId;
+    badgeType: string; // 'milestone', 'task_completion', 'health_goal', 'problem_management'
+    badgeName: string;
+    description: string;
+    icon?: string;
+    earnedAt: Date;
+    metadata?: {
+        problem?: string;
+        milestone?: string;
+        taskCount?: number;
+        [key: string]: any;
+    };
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const BadgeSchema: Schema<IBadge> = new Schema({
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    badgeType: { type: String, required: true },
+    badgeName: { type: String, required: true },
+    description: { type: String, required: true },
+    icon: { type: String },
+    earnedAt: { type: Date, default: Date.now },
+    metadata: { type: Schema.Types.Mixed }
+}, { timestamps: true });
+
+export const Badge: Model<IBadge> = mongoose.models.Badge || mongoose.model<IBadge>('Badge', BadgeSchema);

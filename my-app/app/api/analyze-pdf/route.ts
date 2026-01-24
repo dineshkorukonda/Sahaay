@@ -145,14 +145,41 @@ export async function POST(req: Request) {
             messages: [
                 {
                     role: "system",
-                    content: "You are a medical assistant. Extract the disease name/diagnosis and a list of medicines from the provided medical report text. Return ONLY a valid JSON object with keys: 'diseaseName' (string) and 'medicines' (array of strings). If not found, return null values."
+                    content: `You are a medical assistant. Extract comprehensive information from the provided medical report text. Return ONLY a valid JSON object with the following structure:
+{
+  "diseaseName": "string or null",
+  "medicines": ["array of strings"],
+  "vitals": {
+    "bloodPressure": "string (e.g., '120/80') or null",
+    "heartRate": "number or null",
+    "temperature": "number (in Celsius) or null",
+    "weight": "number (in kg) or null",
+    "glucose": "number (in mg/dL) or null",
+    "bmi": "number or null"
+  },
+  "labValues": [
+    {
+      "name": "string (e.g., 'Hemoglobin', 'Cholesterol')",
+      "value": "string",
+      "unit": "string (e.g., 'g/dL', 'mg/dL') or null",
+      "normalRange": "string or null"
+    }
+  ],
+  "reportDate": "ISO date string or null",
+  "doctorName": "string or null",
+  "hospitalName": "string or null",
+  "diagnosis": "string or null",
+  "symptoms": ["array of strings"],
+  "recommendations": ["array of strings"]
+}
+Extract all available information. If a field is not found, use null or empty array.`
                 },
                 {
                     role: "user",
                     content: contentToAnalyze
                 }
             ],
-            model: "llama-3.1-8b-instant", // Updated to latest Groq model
+            model: "llama-3.1-8b-instant",
             response_format: { type: "json_object" }
         });
 
@@ -176,6 +203,15 @@ export async function POST(req: Request) {
             fileUrl = `data:${fileType};base64,${base64}`;
         }
         
+        // Parse report date if available
+        let reportDate: Date | undefined;
+        if (parsedResult.reportDate) {
+            reportDate = new Date(parsedResult.reportDate);
+            if (isNaN(reportDate.getTime())) {
+                reportDate = undefined;
+            }
+        }
+        
         const record = await MedicalRecord.create({
             userId,
             diseaseName: parsedResult.diseaseName,
@@ -185,7 +221,15 @@ export async function POST(req: Request) {
             fileName: file?.name,
             fileType: fileType,
             fileSize: file?.size,
-            fileUrl: fileUrl
+            fileUrl: fileUrl,
+            vitals: parsedResult.vitals || {},
+            labValues: parsedResult.labValues || [],
+            reportDate: reportDate,
+            doctorName: parsedResult.doctorName,
+            hospitalName: parsedResult.hospitalName,
+            diagnosis: parsedResult.diagnosis,
+            symptoms: parsedResult.symptoms || [],
+            recommendations: parsedResult.recommendations || []
         });
 
         return NextResponse.json({ 

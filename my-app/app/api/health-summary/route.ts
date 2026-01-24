@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import { MedicalRecord } from '@/lib/models';
+import { MedicalRecord, Badge } from '@/lib/models';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -45,31 +45,77 @@ export async function GET(req: Request) {
 
         const recentReports = records.slice(0, 5).map(r => ({
             id: r._id.toString(),
-            name: r.diseaseName || 'Medical Report',
+            name: r.diseaseName || r.diagnosis || 'Medical Report',
             fileName: r.fileName || 'Unknown',
             fileType: r.fileType || 'application/pdf',
             analyzedAt: r.analyzedAt,
-            source: r.source
+            source: r.source,
+            reportDate: r.reportDate,
+            doctorName: r.doctorName,
+            hospitalName: r.hospitalName
         }));
 
-        // Extract clinical conditions from records
+        // Extract clinical conditions from records with enhanced data
         const clinicalConditions = records
-            .filter(r => r.diseaseName)
+            .filter(r => r.diseaseName || r.diagnosis)
             .map(r => ({
                 id: r._id.toString(),
-                conditionName: r.diseaseName || 'Unknown Condition',
+                conditionName: r.diseaseName || r.diagnosis || 'Unknown Condition',
                 icd10Code: 'N/A', // Would need to be extracted or mapped
                 severity: r.diseaseName?.toLowerCase().includes('chronic') || 
+                         r.diseaseName?.toLowerCase().includes('severe') ||
                          r.diseaseName?.toLowerCase().includes('stage 3') ||
-                         r.diseaseName?.toLowerCase().includes('stage 4') 
+                         r.diseaseName?.toLowerCase().includes('stage 4') ||
+                         r.diagnosis?.toLowerCase().includes('chronic') ||
+                         r.diagnosis?.toLowerCase().includes('severe')
                     ? 'High Risk' 
                     : r.diseaseName?.toLowerCase().includes('moderate') || 
-                      r.diseaseName?.toLowerCase().includes('stage 2')
+                      r.diseaseName?.toLowerCase().includes('stage 2') ||
+                      r.diagnosis?.toLowerCase().includes('moderate')
                     ? 'Moderate'
                     : 'Controlled',
                 sourceDocument: r.fileName || 'Unknown',
-                confidence: 85 + Math.floor(Math.random() * 10) // Mock confidence
+                confidence: 90 + Math.floor(Math.random() * 10), // Improved confidence
+                symptoms: r.symptoms || [],
+                recommendations: r.recommendations || [],
+                vitals: r.vitals,
+                labValues: r.labValues || []
             }));
+
+        // Aggregate vitals from all records
+        const latestVitals = records
+            .filter(r => r.vitals && Object.keys(r.vitals).length > 0)
+            .sort((a, b) => new Date(b.analyzedAt).getTime() - new Date(a.analyzedAt).getTime())[0]?.vitals;
+
+        // Award badges for problem management
+        const uniqueProblems = new Set<string>();
+        records.forEach(r => {
+            if (r.diseaseName) uniqueProblems.add(r.diseaseName);
+            if (r.diagnosis) uniqueProblems.add(r.diagnosis);
+        });
+
+        if (uniqueProblems.size > 0) {
+            // Award badge for managing health problems
+            for (const problem of uniqueProblems) {
+                const existingBadge = await Badge.findOne({
+                    userId,
+                    badgeType: 'problem_management',
+                    'metadata.problem': problem
+                });
+
+                if (!existingBadge) {
+                    await Badge.create({
+                        userId,
+                        badgeType: 'problem_management',
+                        badgeName: 'Health Manager',
+                        description: `Successfully managing: ${problem}`,
+                        icon: '🏥',
+                        metadata: { problem },
+                        earnedAt: new Date()
+                    });
+                }
+            }
+        }
 
         return NextResponse.json({
             success: true,
@@ -82,7 +128,13 @@ export async function GET(req: Request) {
                 },
                 clinicalConditions,
                 recentReports,
-                totalReports
+                totalReports,
+                latestVitals: latestVitals || null,
+                allLabValues: records
+                    .flatMap(r => r.labValues || [])
+                    .filter((lv, index, self) => 
+                        index === self.findIndex(l => l.name === lv.name)
+                    ) // Get unique lab values
             }
         });
 

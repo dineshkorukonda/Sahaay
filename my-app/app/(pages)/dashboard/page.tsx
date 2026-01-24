@@ -1,14 +1,16 @@
 "use client";
 
 import React from "react";
-import { Bell, Flame, Medal, CheckCircle2, MessageSquare } from "lucide-react";
+import { Bell, Flame, Medal, CheckCircle2, MessageSquare, Pill } from "lucide-react";
 import Image from "next/image";
 import { Loader } from "@/components/ui/loader";
+import { useToast } from "@/components/ui/toast";
 
 export default function DashboardPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [data, setData] = React.useState<any>(null);
     const [loading, setLoading] = React.useState(true);
+    const { showToast } = useToast();
 
     React.useEffect(() => {
         const fetchData = async () => {
@@ -88,6 +90,84 @@ export default function DashboardPage() {
                         </button>
                     </div>
 
+                    {/* Medication Reminders - Priority Section */}
+                    {actions && actions.filter((a: any) => a.type === 'medication').length > 0 && (
+                        <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-3xl p-6 border border-emerald-200 shadow-sm">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="h-10 w-10 bg-emerald-500 rounded-lg flex items-center justify-center text-white">
+                                    <Pill className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-xl">Medication Reminders</h3>
+                                    <p className="text-sm text-muted-foreground">Take your medications to boost your health score!</p>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                {actions.filter((a: any) => a.type === 'medication').map((action: any) => (
+                                    <div key={action.id} className="bg-white rounded-xl p-4 border border-emerald-200 flex items-center justify-between">
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-lg">{action.title}</h4>
+                                            <p className="text-sm text-muted-foreground">
+                                                {action.dosage && `${action.dosage} • `}
+                                                {action.frequency}
+                                                {action.time && ` • ${action.time}`}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    // Get current care plan
+                                                    const carePlanRes = await fetch('/api/care-plan');
+                                                    const carePlanJson = await carePlanRes.json();
+                                                    
+                                                    if (carePlanJson.success && carePlanJson.data) {
+                                                        const meds = [...(carePlanJson.data.medications || [])];
+                                                        const medIndex = parseInt(action.id.replace('med-', ''));
+                                                        if (meds[medIndex]) {
+                                                            meds[medIndex] = { ...meds[medIndex], status: 'completed' };
+                                                            
+                                                            const res = await fetch('/api/care-plan', {
+                                                                method: 'PUT',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({
+                                                                    medications: meds
+                                                                })
+                                                            });
+                                                            
+                                                            if (res.ok) {
+                                                                // Award points
+                                                                await fetch('/api/health-stats/update', {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({ points: 15 })
+                                                                });
+                                                                showToast('Medication logged! +15 points', 'success');
+                                                                
+                                                                // Refresh data
+                                                                const refreshRes = await fetch('/api/dashboard/home');
+                                                                const refreshJson = await refreshRes.json();
+                                                                if (refreshJson.success) {
+                                                                    setData(refreshJson.data);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                } catch (err) {
+                                                    console.error('Error logging medication:', err);
+                                                    showToast('Failed to log medication', 'error');
+                                                }
+                                            }}
+                                            className="bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-emerald-600 transition-colors flex items-center gap-2"
+                                        >
+                                            <CheckCircle2 className="h-4 w-4" />
+                                            Taken
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Today's Actions */}
                     <div className="pt-8">
                         <div className="flex items-center justify-between mb-6">
@@ -98,13 +178,13 @@ export default function DashboardPage() {
                         </div>
 
                         <div className="space-y-4">
-                            {/* Actions List from API */}
-                            {actions && actions.length > 0 ? (
-                                actions.map((action: any) => (
+                            {/* Actions List from API - Exclude medications (shown above) */}
+                            {actions && actions.filter((a: any) => a.type !== 'medication').length > 0 ? (
+                                actions.filter((a: any) => a.type !== 'medication').map((action: any) => (
                                     <div key={action.id} className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-border/40">
                                         <div className="flex items-center gap-4">
-                                            <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${action.type === 'medication' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
-                                                <span className="text-2xl">{action.type === 'medication' ? '💊' : '😐'}</span>
+                                            <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${action.type === 'checkup' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                <span className="text-2xl">{action.type === 'checkup' ? '🏥' : '📋'}</span>
                                             </div>
                                             <div>
                                                 <h4 className="font-bold text-foreground">{action.title}</h4>
@@ -120,7 +200,7 @@ export default function DashboardPage() {
                                 ))
                             ) : (
                                 <div className="bg-white rounded-2xl p-8 text-center border border-border/40">
-                                    <p className="text-muted-foreground">No actions scheduled for today. Check back later or add a care plan.</p>
+                                    <p className="text-muted-foreground">No other actions scheduled for today.</p>
                                 </div>
                             )}
                         </div>

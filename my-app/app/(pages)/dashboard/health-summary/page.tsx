@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Pill, AlertTriangle, ShieldCheck, Download, Upload, Filter, Search, ChevronRight, FileBarChart, Activity, Plus, X, Loader2 } from "lucide-react";
+import { FileText, Pill, AlertTriangle, ShieldCheck, Download, Upload, Filter, Search, ChevronRight, FileBarChart, Activity, Plus, X, Loader2, Trophy } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { Loader } from "@/components/ui/loader";
 import { useToast } from "@/components/ui/toast";
@@ -35,8 +35,24 @@ interface HealthSummaryData {
     totalReports: number;
 }
 
+interface Badge {
+    _id: string;
+    badgeType: string;
+    badgeName: string;
+    description: string;
+    icon?: string;
+    earnedAt: string;
+    metadata?: {
+        problem?: string;
+        milestone?: string;
+        taskCount?: number;
+        [key: string]: any;
+    };
+}
+
 export default function HealthSummaryPage() {
     const [data, setData] = useState<HealthSummaryData | null>(null);
+    const [badges, setBadges] = useState<Badge[]>([]);
     const [loading, setLoading] = useState(true);
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -45,6 +61,7 @@ export default function HealthSummaryPage() {
 
     useEffect(() => {
         fetchHealthSummary();
+        fetchBadges();
     }, []);
 
     const fetchHealthSummary = async () => {
@@ -59,6 +76,22 @@ export default function HealthSummaryPage() {
             showToast('Failed to load health summary', 'error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchBadges = async () => {
+        try {
+            const res = await fetch('/api/achievements/badges');
+            const json = await res.json();
+            if (json.success) {
+                // Filter badges related to health problems
+                const problemBadges = (json.data || []).filter((b: Badge) => 
+                    b.badgeType === 'problem_management' || b.metadata?.problem
+                );
+                setBadges(problemBadges);
+            }
+        } catch (err) {
+            console.error('Error fetching badges:', err);
         }
     };
 
@@ -406,6 +439,37 @@ export default function HealthSummaryPage() {
                             Generate Patient Summary
                         </button>
                     </div>
+
+                    {/* Badges Section */}
+                    {badges.length > 0 && (
+                        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Trophy className="h-5 w-5 text-yellow-500" />
+                                <h3 className="font-bold text-sm">Health Management Badges</h3>
+                            </div>
+                            <div className="space-y-3">
+                                {badges.slice(0, 3).map((badge) => (
+                                    <div key={badge._id} className="p-3 rounded-xl border border-gray-200 bg-gradient-to-br from-white to-gray-50">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-xl">{badge.icon || '🏆'}</span>
+                                            <span className="font-bold text-xs">{badge.badgeName}</span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground">{badge.description}</p>
+                                        {badge.metadata?.problem && (
+                                            <p className="text-[10px] text-emerald-600 mt-1">
+                                                Condition: {badge.metadata.problem}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            {badges.length > 3 && (
+                                <button className="w-full mt-3 text-xs text-emerald-600 font-bold hover:underline">
+                                    View all {badges.length} badges
+                                </button>
+                            )}
+                        </div>
+                    )}
 
                     <div className="bg-white rounded-3xl p-6 border border-border shadow-sm">
                         <h3 className="font-bold text-sm mb-4">Quick Intelligence Actions</h3>

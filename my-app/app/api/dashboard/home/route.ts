@@ -44,6 +44,8 @@ export async function GET(req: Request) {
             type: string;
             time: string;
             status: string;
+            dosage?: string;
+            frequency?: string;
         }> = [];
         if (carePlan) {
             if (carePlan.medications) {
@@ -51,10 +53,12 @@ export async function GET(req: Request) {
                     if (med.status === 'pending') {
                         actions.push({
                             id: `med-${index}`,
-                            title: `${med.name} - ${med.dosage}`,
+                            title: med.name,
                             type: "medication",
                             time: med.time || "08:00 AM",
-                            status: med.status
+                            status: med.status,
+                            dosage: med.dosage,
+                            frequency: med.frequency
                         });
                     }
                 });
@@ -71,6 +75,25 @@ export async function GET(req: Request) {
                         });
                     }
                 });
+            }
+            // Add today's appointments from weekly schedule
+            if (carePlan.weeklySchedule) {
+                const today = new Date();
+                const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
+                const daySchedule = carePlan.weeklySchedule.find(s => s.day === dayName);
+                if (daySchedule && daySchedule.appointments) {
+                    daySchedule.appointments.forEach((apt, index) => {
+                        if (apt.status === 'pending') {
+                            actions.push({
+                                id: `apt-${index}`,
+                                title: apt.title,
+                                type: apt.type,
+                                time: apt.time,
+                                status: apt.status || 'pending'
+                            });
+                        }
+                    });
+                }
             }
         }
 

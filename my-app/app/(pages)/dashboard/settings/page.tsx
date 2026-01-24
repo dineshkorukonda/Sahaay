@@ -1,13 +1,29 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { User, Globe, LogOut } from "lucide-react";
+import { User, Globe, LogOut, Trophy } from "lucide-react";
 import { Loader } from "@/components/ui/loader";
 import { useToast } from "@/components/ui/toast";
+
+interface Badge {
+    _id: string;
+    badgeType: string;
+    badgeName: string;
+    description: string;
+    icon?: string;
+    earnedAt: string;
+    metadata?: {
+        problem?: string;
+        milestone?: string;
+        taskCount?: number;
+        [key: string]: any;
+    };
+}
 
 export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [badges, setBadges] = useState<Badge[]>([]);
     const [formData, setFormData] = useState({
         email: '',
         mobile: '',
@@ -19,9 +35,13 @@ export default function SettingsPage() {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const res = await fetch('/api/profile');
-                if (res.ok) {
-                    const data = await res.json();
+                const [profileRes, badgesRes] = await Promise.all([
+                    fetch('/api/profile'),
+                    fetch('/api/achievements/badges')
+                ]);
+                
+                if (profileRes.ok) {
+                    const data = await profileRes.json();
                     if (data.success) {
                         setFormData({
                             email: data.data.user?.email || '',
@@ -29,6 +49,13 @@ export default function SettingsPage() {
                             dob: data.data.profile?.dob || '',
                             language: data.data.profile?.language || 'English'
                         });
+                    }
+                }
+                
+                if (badgesRes.ok) {
+                    const badgesData = await badgesRes.json();
+                    if (badgesData.success) {
+                        setBadges(badgesData.data || []);
                     }
                 }
             } catch (err) {
@@ -163,6 +190,40 @@ export default function SettingsPage() {
                                 {saving ? 'Saving...' : 'Save Changes'}
                             </button>
                         </div>
+                    </div>
+
+                    {/* Badges Section */}
+                    <div className="bg-white rounded-3xl p-8 border border-border shadow-sm">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Trophy className="h-6 w-6 text-yellow-500" />
+                            <h2 className="font-bold text-xl">Your Badges</h2>
+                        </div>
+
+                        {badges.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {badges.map((badge) => (
+                                    <div
+                                        key={badge._id}
+                                        className="p-4 rounded-xl border-2 border-gray-200 hover:border-emerald-300 transition-colors bg-gradient-to-br from-white to-gray-50"
+                                    >
+                                        <div className="text-3xl mb-2">{badge.icon || '🏆'}</div>
+                                        <h3 className="font-bold text-sm mb-1">{badge.badgeName}</h3>
+                                        <p className="text-xs text-muted-foreground mb-2">{badge.description}</p>
+                                        <p className="text-[10px] text-muted-foreground">
+                                            {new Date(badge.earnedAt).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8">
+                                <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                                <p className="text-muted-foreground font-medium">No badges earned yet</p>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    Complete tasks and reach milestones to earn badges!
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
