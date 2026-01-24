@@ -5,7 +5,7 @@ import { MedicalRecord } from '@/lib/models';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '');
 
 const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || 'fallback_secret_key_change_in_prod'

@@ -38,7 +38,7 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
         }
     }, []);
 
-    const apiKey = process.env.GOOGLE_API_KEY || '';
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '';
     
     const { isLoaded, loadError } = useJsApiLoader({
         id: 'google-map-script',
