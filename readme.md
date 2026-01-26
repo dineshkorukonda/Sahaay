@@ -71,6 +71,5 @@ Before you begin, ensure you have the following installed:
 
     The application will be available at `http://localhost:3000`.
 
-## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+This is hackathon project by dineshkorukonda @pavankarthikgaraga @nithinkumark
