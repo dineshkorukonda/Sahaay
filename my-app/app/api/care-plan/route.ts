@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import { CarePlan, MedicalRecord, Badge, HealthStats } from '@/lib/models';
+import { CarePlan, Badge, HealthStats } from '@/lib/models';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -67,7 +67,7 @@ export async function PUT(req: Request) {
 
         // Get existing care plan before update
         const existingCarePlan = await CarePlan.findOne({ userId });
-        const previousCompletedTasks = existingCarePlan?.dailyTasks?.filter((t: any) => t.status === 'completed') || [];
+        const previousCompletedTasks = existingCarePlan?.dailyTasks?.filter((t: { status?: string }) => t.status === 'completed') || [];
 
         const carePlan = await CarePlan.findOneAndUpdate(
             { userId },
@@ -77,7 +77,7 @@ export async function PUT(req: Request) {
 
         // Update streak and points when tasks are completed
         if (body.dailyTasks && Array.isArray(body.dailyTasks)) {
-            const completedTasks = body.dailyTasks.filter((t: any) => t.status === 'completed');
+            const completedTasks = body.dailyTasks.filter((t: { status?: string }) => t.status === 'completed');
             
             // Calculate newly completed tasks
             const newlyCompleted = completedTasks.length - previousCompletedTasks.length;

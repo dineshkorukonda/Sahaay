@@ -60,6 +60,7 @@ export default function WaterQualityPage() {
 
     useEffect(() => {
         fetchReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -86,7 +87,7 @@ export default function WaterQualityPage() {
             } else {
                 showToast(json.error || "Failed to submit", "error");
             }
-        } catch (err) {
+        } catch {
             showToast("Failed to submit report", "error");
         } finally {
             setSubmitting(false);

@@ -2,12 +2,11 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ScrollAnimate } from "@/components/scroll-animate"
 import {
   Calendar, Users, FileText,
-  CheckCircle, Shield, Lock, Activity, Pill, Apple,
-  BookOpen, Hospital, Sparkles, Sun, CloudRain,
-  ArrowRight, Heart, Droplets, ShieldAlert, Globe
+  CheckCircle, Shield, Lock, Activity, Pill,
+  BookOpen, Hospital, Sparkles, Sun,
+  ArrowRight, Droplets, ShieldAlert, Globe
 } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"

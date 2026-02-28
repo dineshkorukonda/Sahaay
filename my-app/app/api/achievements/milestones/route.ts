@@ -8,7 +8,7 @@ const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || 'fallback_secret_key_change_in_prod'
 );
 
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
     try {
         await connectDB();
         const token = (await cookies()).get('token')?.value;

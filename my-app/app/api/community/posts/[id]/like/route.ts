@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import { CommunityPost, CommunityComment, User } from '@/lib/models';
+import { CommunityPost } from '@/lib/models';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -46,15 +46,14 @@ export async function POST(
             return NextResponse.json({ error: 'Post not found' }, { status: 404 });
         }
 
-        const userIdObj = userId as any;
-        const isLiked = post.likes.some((likeId: any) => likeId.toString() === userId);
+        const isLiked = post.likes.some((likeId: unknown) => String(likeId) === userId);
 
         if (isLiked) {
             // Unlike
-            post.likes = post.likes.filter((likeId: any) => likeId.toString() !== userId);
+            post.likes = post.likes.filter((likeId: unknown) => String(likeId) !== userId);
         } else {
             // Like
-            post.likes.push(userIdObj);
+            post.likes.push(userId);
         }
 
         await post.save();

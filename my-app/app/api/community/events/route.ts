@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import { CommunityEvent, User } from '@/lib/models';
+import { CommunityEvent } from '@/lib/models';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -27,7 +27,7 @@ async function getUserId(req: Request): Promise<string | null> {
 }
 
 // Get all events
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
     try {
         await connectDB();
         
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
             .populate('createdBy', 'name')
             .lean();
 
-        const formattedEvents = events.map((event: any) => {
+        const formattedEvents = events.map((event: { _id: { toString(): string }; date: string | Date; title?: string; location?: string; type?: string; link?: string; attendees?: unknown[] }) => {
             const eventDate = new Date(event.date);
             const day = eventDate.getDate();
             const month = eventDate.toLocaleString('default', { month: 'short' }).toUpperCase();
@@ -90,9 +90,9 @@ export async function POST(req: Request) {
                 return NextResponse.json({ error: 'Event not found' }, { status: 404 });
             }
 
-            const isAttending = event.attendees.some((attendeeId: any) => attendeeId.toString() === userId);
+            const isAttending = event.attendees.some((attendeeId: unknown) => String(attendeeId) === userId);
             if (!isAttending) {
-                event.attendees.push(userId as any);
+                event.attendees.push(userId);
                 await event.save();
             }
 

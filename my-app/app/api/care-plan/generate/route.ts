@@ -11,7 +11,7 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'fallback_secret_key_change_in_prod'
 );
 
-export async function POST(req: Request) {
+export async function POST(_req: Request) {
   try {
     await connectDB();
     const token = (await cookies()).get('token')?.value;
@@ -179,7 +179,7 @@ export async function POST(req: Request) {
       const scheduledMeds = carePlanData.medications || [];
       carePlanData.medications = actualMedications.map(actualMed => {
         // Find matching scheduled medication from LLM
-        const scheduled = scheduledMeds.find((s: any) =>
+        const scheduled = scheduledMeds.find((s: { name?: string; dosage?: string; frequency?: string; time?: string }) =>
           s.name.toLowerCase() === actualMed.name.toLowerCase()
         );
         return {
@@ -192,14 +192,14 @@ export async function POST(req: Request) {
       });
     } else if (carePlanData.medications) {
       // If no actual medications, use LLM generated but mark as pending
-      carePlanData.medications = carePlanData.medications.map((med: any) => ({
+      carePlanData.medications = carePlanData.medications.map((med: Record<string, unknown>) => ({
         ...med,
         status: 'pending'
       }));
     }
 
     if (carePlanData.dailyTasks) {
-      carePlanData.dailyTasks = carePlanData.dailyTasks.map((task: any) => ({
+      carePlanData.dailyTasks = carePlanData.dailyTasks.map((task: Record<string, unknown>) => ({
         ...task,
         status: 'pending'
       }));
@@ -209,21 +209,19 @@ export async function POST(req: Request) {
     if (carePlanData.weeklySchedule) {
       const today = new Date();
       const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
       // Find Monday of current week
       const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
       const monday = new Date(today);
       monday.setDate(today.getDate() + mondayOffset);
 
-      carePlanData.weeklySchedule = carePlanData.weeklySchedule.map((daySchedule: any, index: number) => {
+      carePlanData.weeklySchedule = carePlanData.weeklySchedule.map((daySchedule: Record<string, unknown>, index: number) => {
         const dayDate = new Date(monday);
         dayDate.setDate(monday.getDate() + index);
 
         return {
           ...daySchedule,
           date: dayDate.toISOString().split('T')[0],
-          appointments: (daySchedule.appointments || []).map((apt: any) => ({
+          appointments: (daySchedule.appointments || []).map((apt: Record<string, unknown>) => ({
             ...apt,
             status: 'pending'
           }))
@@ -238,21 +236,21 @@ export async function POST(req: Request) {
 
     // Sanitize 'time' fields to prevent arrays (CastError)
     if (carePlanData.medications) {
-      carePlanData.medications.forEach((med: any) => {
+      carePlanData.medications.forEach((med: Record<string, unknown>) => {
         if (Array.isArray(med.time)) med.time = med.time.join(', ');
       });
     }
 
     if (carePlanData.dailyTasks) {
-      carePlanData.dailyTasks.forEach((task: any) => {
+      carePlanData.dailyTasks.forEach((task: Record<string, unknown>) => {
         if (Array.isArray(task.time)) task.time = task.time.join(', ');
       });
     }
 
     if (carePlanData.weeklySchedule) {
-      carePlanData.weeklySchedule.forEach((day: any) => {
+      carePlanData.weeklySchedule.forEach((day: Record<string, unknown>) => {
         if (day.appointments) {
-          day.appointments.forEach((apt: any) => {
+          day.appointments.forEach((apt: Record<string, unknown>) => {
             if (Array.isArray(apt.time)) apt.time = apt.time.join(', ');
           });
         }

@@ -18,7 +18,7 @@ export async function getUserIdFromRequest(req: Request): Promise<string | null>
             try {
                 const { payload } = await jwtVerify(token, JWT_SECRET);
                 return payload.userId as string;
-            } catch (error) {
+            } catch {
                 // Token invalid, continue to try cookie
             }
         }
@@ -30,7 +30,7 @@ export async function getUserIdFromRequest(req: Request): Promise<string | null>
             try {
                 const { payload } = await jwtVerify(token, JWT_SECRET);
                 return payload.userId as string;
-            } catch (error) {
+            } catch {
                 // Token invalid
                 return null;
             }
@@ -51,9 +51,9 @@ export async function getUserIdFromRequest(req: Request): Promise<string | null>
 export async function requireAuth(req: Request): Promise<string> {
     const userId = await getUserIdFromRequest(req);
     if (!userId) {
-        const error: any = new Error('Unauthorized');
-        error.status = 401;
-        throw error;
+        const err = new Error('Unauthorized') as Error & { status: number };
+        err.status = 401;
+        throw err;
     }
     return userId;
 }

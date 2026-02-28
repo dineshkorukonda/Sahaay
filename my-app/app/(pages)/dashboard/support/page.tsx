@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, HelpCircle, Phone, Mail, MessageSquare, ChevronDown, ChevronRight, FileText, ExternalLink } from "lucide-react";
+import { Search, Phone, Mail, MessageSquare, ChevronRight, FileText } from "lucide-react";
 
 export default function SupportPage() {
     return (

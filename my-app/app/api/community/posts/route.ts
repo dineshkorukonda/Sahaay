@@ -29,7 +29,7 @@ async function getUserId(req: Request): Promise<string | null> {
 }
 
 // Get all posts
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
     try {
         await connectDB();
         
@@ -40,7 +40,7 @@ export async function GET(req: Request) {
             .lean();
 
         // Format posts for frontend
-        const formattedPosts = posts.map((post: any) => {
+        const formattedPosts = posts.map((post: Record<string, unknown> & { _id: { toString(): string }; createdAt: string | Date; author?: string; userId?: { name?: string }; avatar?: string; content?: string; category?: string; likes?: unknown[]; comments?: unknown[] }) => {
             const timeAgo = getTimeAgo(new Date(post.createdAt));
             return {
                 id: post._id.toString(),

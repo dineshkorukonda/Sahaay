@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Pill, AlertTriangle, ShieldCheck, Download, Upload, Filter, Search, ChevronRight, FileBarChart, Activity, Plus, X, Loader2, Trophy } from "lucide-react";
+import { FileText, Pill, AlertTriangle, ShieldCheck, Download, Upload, Filter, Search, Activity, Plus, X, Loader2, Trophy } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { Loader } from "@/components/ui/loader";
 import { useToast } from "@/components/ui/toast";
@@ -46,7 +46,7 @@ interface Badge {
         problem?: string;
         milestone?: string;
         taskCount?: number;
-        [key: string]: any;
+        [key: string]: unknown;
     };
 }
 
@@ -62,6 +62,7 @@ export default function HealthSummaryPage() {
     useEffect(() => {
         fetchHealthSummary();
         fetchBadges();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount
     }, []);
 
     const fetchHealthSummary = async () => {
@@ -341,7 +342,6 @@ export default function HealthSummaryPage() {
                                 <div className="space-y-4">
                                     {recentReports.map((report) => {
                                         const isPDF = report.fileType === 'application/pdf' || report.fileName.endsWith('.pdf');
-                                        const isImage = report.fileType?.startsWith('image/') || report.fileName.match(/\.(png|jpg|jpeg|gif)$/i);
                                         return (
                                             <div key={report.id} className="flex items-center gap-4 p-3 rounded-xl border border-border hover:bg-gray-50 transition-colors cursor-pointer group">
                                                 <div className={`h-10 w-10 ${isPDF ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'} rounded-lg flex items-center justify-center font-bold text-xs uppercase group-hover:${isPDF ? 'bg-red-100' : 'bg-blue-100'} transition-colors`}>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { CloudUpload, FileText, Trash2, CheckCircle2, Loader2, X } from "lucide-react";
+import { CloudUpload, Trash2, CheckCircle2, Loader2, X } from "lucide-react";
 
 interface UploadedFile {
     id: string;

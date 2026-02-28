@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquare, Heart, Share2, Calendar, Users, Filter, Search, PlusCircle, Loader2 } from "lucide-react";
+import { MessageSquare, Heart, Share2, Users, Search, PlusCircle, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface Post {
@@ -348,7 +348,7 @@ export default function CommunityPage() {
                             </div>
                             
                             <div>
-                                <label className="block text-sm font-semibold mb-2">What's on your mind?</label>
+                                <label className="block text-sm font-semibold mb-2">What&apos;s on your mind?</label>
                                 <textarea
                                     value={postContent}
                                     onChange={(e) => setPostContent(e.target.value)}

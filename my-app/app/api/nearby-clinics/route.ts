@@ -72,9 +72,9 @@ export async function GET(req: Request) {
                 // Extract address components
                 const addressComponents = geoData.results[0].address_components;
                 searchLocation = {
-                    city: addressComponents.find((c: any) => c.types.includes('locality'))?.long_name || searchCity,
-                    state: addressComponents.find((c: any) => c.types.includes('administrative_area_level_1'))?.long_name || searchState,
-                    pinCode: addressComponents.find((c: any) => c.types.includes('postal_code'))?.long_name || searchPinCode
+                    city: addressComponents.find((c: { types?: string[]; long_name?: string }) => c.types?.includes('locality'))?.long_name || searchCity,
+                    state: addressComponents.find((c: { types?: string[]; long_name?: string }) => c.types?.includes('administrative_area_level_1'))?.long_name || searchState,
+                    pinCode: addressComponents.find((c: { types?: string[]; long_name?: string }) => c.types?.includes('postal_code'))?.long_name || searchPinCode
                 };
             }
         }
@@ -120,8 +120,7 @@ export async function GET(req: Request) {
         }
 
         // --- Fetch Facilities using Google Places API ---
-        const radius = 5000; // 5km radius
-        const facilities: any[] = [];
+        const facilities: Array<{ id?: string; name: string; address?: string; distance?: string; phone?: string; hours?: string; latitude?: number; longitude?: number; type?: string }> = [];
 
         // Define types to search
         const searchTypes = [
@@ -158,15 +157,15 @@ export async function GET(req: Request) {
                 const placesData = await response.json();
                 
                 if (placesData.places) {
-                    const mapped = placesData.places.slice(0, 5).map((place: any) => ({ // Limit 5 per category
+                    const mapped = placesData.places.slice(0, 5).map((place: { name?: string; displayName?: { text?: string }; formattedAddress?: string; location?: { latitude?: number; longitude?: number }; regularOpeningHours?: { openNow?: boolean } }) => ({ // Limit 5 per category
                         id: place.name, // Resource name (e.g., places/ChIJ...)
                         name: place.displayName?.text || 'Unknown Name',
                         address: place.formattedAddress || 'No address',
-                        distance: calculateDistance(lat!, lon!, place.location.latitude, place.location.longitude).toFixed(1) + ' km',
+                        distance: calculateDistance(lat!, lon!, place.location?.latitude ?? 0, place.location?.longitude ?? 0).toFixed(1) + ' km',
                         phone: 'View on map', 
                         hours: place.regularOpeningHours?.openNow ? 'Open Now' : 'Check hours',
-                        latitude: place.location.latitude,
-                        longitude: place.location.longitude,
+                        latitude: place.location?.latitude,
+                        longitude: place.location?.longitude,
                         type: searchType.type,
                         amenity: searchType.keyword
                     }));

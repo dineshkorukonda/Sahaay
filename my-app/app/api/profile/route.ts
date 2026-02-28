@@ -69,7 +69,7 @@ export async function PUT(req: Request) {
         }
 
         const data = await req.json();
-        const updateData: any = {};
+        const updateData: Record<string, unknown> = {};
 
         // Only allow updating email, mobile, dob, and language
         if (data.email !== undefined) {
@@ -96,7 +96,7 @@ export async function PUT(req: Request) {
         }
 
         // Update profile
-        const profileUpdate: any = {};
+        const profileUpdate: Record<string, unknown> = {};
         if (data.dob !== undefined) {
             profileUpdate.dob = data.dob;
         }

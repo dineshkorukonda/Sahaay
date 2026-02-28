@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Calendar, MapPin } from "lucide-react";
+import { Calendar } from "lucide-react";
 
 export default function ProfileSetup() {
     const [formData, setFormData] = React.useState({
@@ -14,6 +14,7 @@ export default function ProfileSetup() {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- reserved for explicit Save button
     const handleSave = async () => {
         try {
             await fetch('/api/onboarding/profile', {

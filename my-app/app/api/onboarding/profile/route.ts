@@ -32,7 +32,7 @@ export async function POST(req: Request) {
         const data = await req.json();
 
         // Build update object dynamically
-        const updateData: any = {};
+        const updateData: Record<string, unknown> = {};
         
         if (data.dob !== undefined) updateData.dob = data.dob;
         if (data.gender !== undefined) updateData.gender = data.gender;

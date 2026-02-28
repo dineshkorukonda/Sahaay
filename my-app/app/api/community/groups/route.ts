@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import { CommunityGroup, User } from '@/lib/models';
+import { CommunityGroup } from '@/lib/models';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -27,7 +27,7 @@ async function getUserId(req: Request): Promise<string | null> {
 }
 
 // Get all groups
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
     try {
         await connectDB();
         
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
             .populate('createdBy', 'name')
             .lean();
 
-        const formattedGroups = groups.map((group: any) => ({
+        const formattedGroups = groups.map((group: Record<string, unknown> & { _id: { toString(): string }; name?: string; description?: string; image?: string; members?: unknown[]; tags?: unknown[] }) => ({
             id: group._id.toString(),
             name: group.name,
             description: group.description,
@@ -74,9 +74,9 @@ export async function POST(req: Request) {
                 return NextResponse.json({ error: 'Group not found' }, { status: 404 });
             }
 
-            const isMember = group.members.some((memberId: any) => memberId.toString() === userId);
+            const isMember = group.members.some((memberId: unknown) => String(memberId) === userId);
             if (!isMember) {
-                group.members.push(userId as any);
+                group.members.push(userId);
                 await group.save();
             }
 

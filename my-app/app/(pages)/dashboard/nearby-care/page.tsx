@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import dynamic from 'next/dynamic';
 import { Loader } from "@/components/ui/loader";
 import { useToast } from "@/components/ui/toast";
+import type { MapFacility } from "./MapComponent";
 
 // Dynamically import map component to avoid SSR issues
 const MapComponent = dynamic(() => import('./MapComponent'), {
@@ -13,7 +14,7 @@ const MapComponent = dynamic(() => import('./MapComponent'), {
 });
 
 export default function NearbyCarePage() {
-    const [facilities, setFacilities] = useState<any[]>([]);
+    const [facilities, setFacilities] = useState<MapFacility[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedType, setSelectedType] = useState('all');
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
@@ -28,6 +29,7 @@ export default function NearbyCarePage() {
 
     useEffect(() => {
         fetchFacilities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount
     }, []);
 
     // Force map update when mapCenter changes
@@ -125,7 +127,7 @@ export default function NearbyCarePage() {
             setShowLocationModal(false);
             setPinCode('');
             showToast('Location updated successfully', 'success');
-        } catch (err) {
+        } catch {
             showToast('Failed to update location', 'error');
         } finally {
             setLocationLoading(false);
@@ -160,7 +162,7 @@ export default function NearbyCarePage() {
             } else {
                 showToast('Location not found. Please try a different search.', 'error');
             }
-        } catch (err) {
+        } catch {
             showToast('Failed to update location', 'error');
         } finally {
             setLocationLoading(false);
@@ -195,7 +197,7 @@ export default function NearbyCarePage() {
             await fetchFacilities(); // Fetch without params to use profile location
             setShowLocationModal(false);
             showToast('Using your profile location', 'success');
-        } catch (err) {
+        } catch {
             showToast('Failed to load profile location', 'error');
         } finally {
             setLocationLoading(false);
@@ -496,7 +498,7 @@ export default function NearbyCarePage() {
                                     </button>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-2">
-                                    Enter city name or "City, State" format
+                                    Enter city name or &quot;City, State&quot; format
                                 </p>
                             </div>
 

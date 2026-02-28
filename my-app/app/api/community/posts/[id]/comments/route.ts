@@ -8,7 +8,7 @@ const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || 'fallback_secret_key_change_in_prod'
 );
 
-async function getUserId(req: Request): Promise<string | null> {
+async function _getUserId(req: Request): Promise<string | null> {
     try {
         const authHeader = req.headers.get('authorization');
         if (authHeader?.startsWith('Bearer ')) {
@@ -40,7 +40,7 @@ export async function GET(
             .populate('userId', 'name email')
             .lean();
 
-        const formattedComments = comments.map((comment: any) => ({
+        const formattedComments = comments.map((comment: Record<string, unknown> & { _id: { toString(): string }; author?: string; userId?: { name?: string }; avatar?: string; content?: string; createdAt: string | Date }) => ({
             id: comment._id.toString(),
             author: comment.author || comment.userId?.name || 'Anonymous',
             avatar: comment.avatar || (comment.userId?.name ? comment.userId.name.substring(0, 2).toUpperCase() : 'U'),

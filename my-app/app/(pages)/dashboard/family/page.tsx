@@ -1,16 +1,24 @@
 "use client";
 
-import { Plus, MoreVertical, Trash2, Edit2, Users, Activity, Heart, Phone, Mail, Calendar } from "lucide-react";
+import { Plus, Trash2, Users, Activity, Heart, Phone, Mail, Calendar } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Loader } from "@/components/ui/loader";
 import { useToast } from "@/components/ui/toast";
 
+interface FamilyMember {
+    _id?: string;
+    name: string;
+    relationship: string;
+    age?: string;
+    email?: string;
+    phone?: string;
+}
+
 export default function FamilyPage() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [members, setMembers] = useState<any[]>([]);
+    const [members, setMembers] = useState<FamilyMember[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
-    const [editingMember, setEditingMember] = useState<any>(null);
+    const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
     const [newMember, setNewMember] = useState({
         name: '',
         relationship: '',
@@ -22,6 +30,7 @@ export default function FamilyPage() {
 
     useEffect(() => {
         fetchFamily();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: fetch once on mount
     }, []);
 
     const fetchFamily = async () => {
@@ -115,7 +124,7 @@ export default function FamilyPage() {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight mb-2">Family Circle</h1>
-                    <p className="text-muted-foreground text-sm">Manage and monitor your family members' health</p>
+                    <p className="text-muted-foreground text-sm">Manage and monitor your family members&apos; health</p>
                 </div>
                 <div className="flex gap-3">
                     {members.length > 0 && (

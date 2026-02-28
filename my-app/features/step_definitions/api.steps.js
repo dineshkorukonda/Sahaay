@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Cucumber --require expects CommonJS */
 const { Given, When, Then } = require('@cucumber/cucumber');
 const assert = require('assert');
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChevronDown, Plus, UserPlus } from "lucide-react";
+import { ChevronDown, UserPlus } from "lucide-react";
 
 export default function FamilySetup() {
     const [members, setMembers] = React.useState<Array<{

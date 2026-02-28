@@ -1,22 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
-import { ArrowLeft, ArrowRight, HelpCircle, User } from "lucide-react";
-import Link from "next/link";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { BriefcaseMedical } from "lucide-react";
 import { Loader } from "@/components/ui/loader";
 
 // Steps
 import ProfileSetup from "./steps/ProfileSetup";
 import LocationSetup from "./steps/LocationSetup";
 import EmergencyInfo from "./steps/EmergencyInfo";
-import RecordsUpload from "./steps/RecordsUpload";
 
 export default function OnboardingPage() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(1);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- setHasRecords used when records uploaded
     const [hasRecords, setHasRecords] = useState(false);
     const totalSteps = 3; // Profile, Location, Emergency
 

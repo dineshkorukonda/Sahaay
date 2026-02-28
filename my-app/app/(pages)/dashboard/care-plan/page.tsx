@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Calendar, AlertTriangle, Moon, Utensils, Activity, CheckSquare, Square, Check, Pill, Loader2, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Utensils, Activity, Check, Pill, Loader2, Clock } from "lucide-react";
 import { Loader } from "@/components/ui/loader";
 import { useToast } from "@/components/ui/toast";
 
@@ -259,14 +259,10 @@ export default function CarePlanPage() {
         return <Loader fullScreen text="Loading care plan..." />;
     }
 
-    const hasData = carePlan !== null;
-    const medications = carePlan?.medications || [];
     const dietPlan = carePlan?.dietPlan;
     const exercisePlan = carePlan?.exercisePlan;
     const dailyTasks = carePlan?.dailyTasks || [];
-    const weeklySchedule = carePlan?.weeklySchedule || [];
     const weekDates = getWeekDates();
-    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const todayMedications = getTodayMedications();
 
     return (
@@ -385,7 +381,7 @@ export default function CarePlanPage() {
                                     <Pill className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-xl">Today's Medication Reminders</h3>
+                                    <h3 className="font-bold text-xl">Today&apos;s Medication Reminders</h3>
                                     <p className="text-sm text-muted-foreground">Take your medications to boost your health score!</p>
                                 </div>
                             </div>
@@ -459,7 +455,7 @@ export default function CarePlanPage() {
                                     <div className="text-center py-8">
                                         <Utensils className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
                                         <p className="text-muted-foreground font-medium">No diet plan available</p>
-                                        <p className="text-sm text-muted-foreground mt-2">Click "Generate Summary" to create a personalized diet plan</p>
+                                        <p className="text-sm text-muted-foreground mt-2">Click &quot;Generate Summary&quot; to create a personalized diet plan</p>
                                     </div>
                                 )}
                             </div>
@@ -518,7 +514,7 @@ export default function CarePlanPage() {
                                     <div className="text-center py-8">
                                         <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
                                         <p className="text-muted-foreground font-medium">No exercise plan available</p>
-                                        <p className="text-sm text-muted-foreground mt-2">Click "Generate Summary" to create a personalized workout plan</p>
+                                        <p className="text-sm text-muted-foreground mt-2">Click &quot;Generate Summary&quot; to create a personalized workout plan</p>
                                     </div>
                                 )}
                             </div>

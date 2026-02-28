@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trophy, Medal, Star, Award, Target, CheckCircle2, Flame, Activity, Heart, Pill } from "lucide-react";
+import { Trophy, Target, CheckCircle2, Heart } from "lucide-react";
 import { Loader } from "@/components/ui/loader";
 
 interface Badge {
@@ -15,7 +15,7 @@ interface Badge {
         problem?: string;
         milestone?: string;
         taskCount?: number;
-        [key: string]: any;
+        [key: string]: unknown;
     };
 }
 

@@ -1,14 +1,29 @@
 "use client";
 
 import React from "react";
-import { Bell, Flame, Medal, CheckCircle2, MessageSquare, Pill } from "lucide-react";
+import { Bell, Flame, Medal, CheckCircle2, Pill } from "lucide-react";
 import Image from "next/image";
 import { Loader } from "@/components/ui/loader";
 import { useToast } from "@/components/ui/toast";
 
+interface DashboardAction {
+    id: string;
+    type: string;
+    title?: string;
+    dosage?: string;
+    frequency?: string;
+    time?: string;
+}
+
+interface DashboardData {
+    user?: { name?: string; _id?: string };
+    profile?: unknown;
+    stats?: { streak?: number; points?: number };
+    actions?: DashboardAction[];
+}
+
 export default function DashboardPage() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [data, setData] = React.useState<any>(null);
+    const [data, setData] = React.useState<DashboardData | null>(null);
     const [loading, setLoading] = React.useState(true);
     const { showToast } = useToast();
 
@@ -33,7 +48,7 @@ export default function DashboardPage() {
         return <Loader fullScreen text="Loading dashboard..." />;
     }
 
-    const { user, profile, stats, actions } = data || {};
+    const { user, stats, actions } = data || {};
     const userName = user?.name || "User";
     const streak = stats?.streak || 0;
     const points = stats?.points || 0;
@@ -64,7 +79,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-muted-foreground pt-1">Patient ID: #{user?._id?.toString().slice(-4)}</p>
                         </div>
                         <div className="h-10 w-10 rounded-full bg-emerald-100 overflow-hidden border border-white shadow-sm">
-                            <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100&h=100" alt="Profile" className="h-full w-full object-cover" />
+                            <Image src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100&h=100" alt="Profile" width={40} height={40} className="h-full w-full object-cover" />
                         </div>
                     </div>
                 </div>
@@ -107,7 +122,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Medication Reminders - Priority Section */}
-                    {actions && actions.filter((a: any) => a.type === 'medication').length > 0 && (
+                    {actions && actions.filter((a: DashboardAction) => a.type === 'medication').length > 0 && (
                         <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-3xl p-6 border border-emerald-200 shadow-sm">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="h-10 w-10 bg-emerald-500 rounded-lg flex items-center justify-center text-white">
@@ -119,7 +134,7 @@ export default function DashboardPage() {
                                 </div>
                             </div>
                             <div className="space-y-3">
-                                {actions.filter((a: any) => a.type === 'medication').map((action: any) => (
+                                {actions.filter((a: DashboardAction) => a.type === 'medication').map((action: DashboardAction) => (
                                     <div key={action.id} className="bg-white rounded-xl p-4 border border-emerald-200 flex items-center justify-between">
                                         <div className="flex-1">
                                             <h4 className="font-bold text-lg">{action.title}</h4>
@@ -195,8 +210,8 @@ export default function DashboardPage() {
 
                         <div className="space-y-4">
                             {/* Actions List from API - Exclude medications (shown above) */}
-                            {actions && actions.filter((a: any) => a.type !== 'medication').length > 0 ? (
-                                actions.filter((a: any) => a.type !== 'medication').map((action: any) => (
+                            {actions && actions.filter((a: DashboardAction) => a.type !== 'medication').length > 0 ? (
+                                actions.filter((a: DashboardAction) => a.type !== 'medication').map((action: DashboardAction) => (
                                     <div key={action.id} className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-border/40">
                                         <div className="flex items-center gap-4">
                                             <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${action.type === 'checkup' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>

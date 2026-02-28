@@ -81,7 +81,7 @@ export async function GET(req: Request) {
             margin: { left: 14 }
         });
 
-        let finalY = (doc as any).lastAutoTable.finalY + 15;
+        let finalY = (doc as { lastAutoTable?: { finalY: number } }).lastAutoTable!.finalY + 15;
 
         // --- Medical Summary ---
         if (carePlan.problem) {
@@ -104,7 +104,7 @@ export async function GET(req: Request) {
             doc.text('Prescribed Medications', 14, finalY);
             doc.line(14, finalY + 2, 65, finalY + 2);
 
-            const medRows = carePlan.medications.map((med: any) => [
+            const medRows = carePlan.medications.map((med: { name?: string; dosage?: string; frequency?: string; time?: string }) => [
                 med.name,
                 med.dosage,
                 med.frequency,
@@ -120,7 +120,7 @@ export async function GET(req: Request) {
                 styles: { fontSize: 10 }
             });
 
-            finalY = (doc as any).lastAutoTable.finalY + 15;
+            finalY = (doc as { lastAutoTable?: { finalY: number } }).lastAutoTable!.finalY + 15;
         }
 
         // --- Lifestyle & Diet ---
@@ -148,7 +148,7 @@ export async function GET(req: Request) {
 
         let exTextStr = '';
         if (carePlan.exercisePlan?.activities) {
-            exTextStr = carePlan.exercisePlan.activities.map((a: any) => `- ${a.name} (${a.duration})`).join('\n');
+            exTextStr = carePlan.exercisePlan.activities.map((a: { name?: string; duration?: string }) => `- ${a.name} (${a.duration})`).join('\n');
         }
 
         doc.setFontSize(10);

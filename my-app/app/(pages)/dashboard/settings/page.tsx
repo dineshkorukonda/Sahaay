@@ -16,7 +16,7 @@ interface Badge {
         problem?: string;
         milestone?: string;
         taskCount?: number;
-        [key: string]: any;
+        [key: string]: unknown;
     };
 }
 

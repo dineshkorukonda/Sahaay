@@ -5,15 +5,25 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 
 const libraries: Libraries = ['places'];
 
+export interface MapFacility {
+    id?: string;
+    name: string;
+    lat: number;
+    lng: number;
+    type?: string;
+    address?: string;
+    [key: string]: unknown;
+}
+
 interface MapComponentProps {
     center: [number, number];
     userLocation: [number, number] | null;
-    facilities: any[];
+    facilities: MapFacility[];
     onMapClick?: (lat: number, lon: number) => void;
 }
 
 export default function MapComponent({ center, userLocation, facilities, onMapClick }: MapComponentProps) {
-    const [selectedFacility, setSelectedFacility] = useState<any | null>(null);
+    const [selectedFacility, setSelectedFacility] = useState<MapFacility | null>(null);
     const [map, setMap] = useState<google.maps.Map | null>(null);
     const [apiError, setApiError] = useState<string | null>(null);
     const mapRef = useRef<google.maps.Map | null>(null);
@@ -22,7 +32,7 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const originalError = console.error;
-            console.error = (...args: any[]) => {
+            console.error = (...args: unknown[]) => {
                 const message = args.join(' ');
                 if (message.includes('ApiTargetBlockedMapError') ||
                     message.includes('api-target-blocked') ||
@@ -178,10 +188,10 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
                                     </li>
                                     <li className="mb-2">Click on your API key to edit it</li>
                                     <li className="mb-2">
-                                        Under <strong>"Application restrictions"</strong>:
+                                        Under <strong>&quot;Application restrictions&quot;</strong>:
                                         <ul className="list-disc list-inside ml-6 mt-2 space-y-1">
-                                            <li>Select <strong>"HTTP referrers (web sites)"</strong></li>
-                                            <li>Click <strong>"Add an item"</strong> and add these one by one:
+                                            <li>Select <strong>&quot;HTTP referrers (web sites)&quot;</strong></li>
+                                            <li>Click <strong>&quot;Add an item&quot;</strong> and add these one by one:
                                                 <div className="bg-white p-2 rounded mt-2 font-mono text-xs">
                                                     <div>localhost:3000/*</div>
                                                     <div>127.0.0.1:3000/*</div>
@@ -191,20 +201,20 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
                                         </ul>
                                     </li>
                                     <li className="mb-2">
-                                        Under <strong>"API restrictions"</strong>:
+                                        Under <strong>&quot;API restrictions&quot;</strong>:
                                         <ul className="list-disc list-inside ml-6 mt-1">
-                                            <li>Select <strong>"Restrict key"</strong></li>
-                                            <li>Ensure <strong>"Maps JavaScript API"</strong> is checked/enabled</li>
+                                            <li>Select <strong>&quot;Restrict key&quot;</strong></li>
+                                            <li>Ensure <strong>&quot;Maps JavaScript API&quot;</strong> is checked/enabled</li>
                                         </ul>
                                     </li>
-                                    <li className="mb-2"><strong>Click "Save"</strong> and wait 1-2 minutes</li>
+                                    <li className="mb-2"><strong>Click &quot;Save&quot;</strong> and wait 1-2 minutes</li>
                                     <li><strong>Refresh this page</strong></li>
                                 </ol>
                             </div>
                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                 <p className="text-xs text-blue-900 font-semibold mb-1">💡 Alternative for Development:</p>
                                 <p className="text-xs text-blue-800">
-                                    You can temporarily set "Application restrictions" to <strong>"None"</strong> for local development, 
+                                    You can temporarily set &quot;Application restrictions&quot; to <strong>&quot;None&quot;</strong> for local development, 
                                     but remember to add restrictions before deploying to production.
                                 </p>
                             </div>

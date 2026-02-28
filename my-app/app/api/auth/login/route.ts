@@ -83,7 +83,7 @@ export async function POST(req: Request) {
         const isMobileRequest = req.headers.get('x-client-type') === 'mobile' || 
                                 req.headers.get('authorization') !== null;
 
-        const responseData: any = { 
+        const responseData: Record<string, unknown> = { 
             success: true, 
             user: { 
                 id: user._id, 
