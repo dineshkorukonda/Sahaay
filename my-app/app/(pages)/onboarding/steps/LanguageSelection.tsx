@@ -11,6 +11,7 @@ interface LanguageSelectionProps {
 const languages = [
   { id: "en", name: "English", sub: "Standard English", icon: Languages },
   { id: "hi", name: "Hindi", sub: "हिन्दी", icon: Globe },
+  { id: "as", name: "Assamese", sub: "অসমীয়া", icon: Globe },
 ];
 
 export default function LanguageSelection({ selectedLanguage, onSelect }: LanguageSelectionProps) {
@@ -64,7 +65,7 @@ export default function LanguageSelection({ selectedLanguage, onSelect }: Langua
 
       <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
         <p className="text-sm text-blue-800 text-center">
-          <strong>Note:</strong> Other languages will be supported soon.
+          <strong>Multilingual support</strong> for community reporting and tribal languages (NER).
         </p>
       </div>
     </div>

@@ -2,12 +2,6 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import { User } from '@/lib/models';
 import bcrypt from 'bcryptjs';
-import { sendOTPEmail } from '@/lib/email';
-
-// Generate 6-digit OTP
-function generateOTP(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-}
 
 export async function POST(req: Request) {
     try {
@@ -40,32 +34,19 @@ export async function POST(req: Request) {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const otp = generateOTP();
-        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
 
-        // Create user with OTP (not verified yet)
+        // Create user (no OTP verification)
         const newUser = await User.create({
             name,
             mobile: mobile || undefined,
             email,
             password: hashedPassword,
-            otp,
-            otpExpires,
-            isEmailVerified: false,
+            isEmailVerified: true,
         });
 
-        // Send OTP email
-        try {
-            await sendOTPEmail(email, otp);
-        } catch (emailError) {
-            console.error('Failed to send OTP email:', emailError);
-            // Still return success but note that email might not have been sent
-            // In production, you might want to handle this differently
-        }
-
-        return NextResponse.json({ 
-            success: true, 
-            message: 'Account created. Please check your email for OTP verification.',
+        return NextResponse.json({
+            success: true,
+            message: 'Account created. You can log in now.',
             userId: newUser._id.toString(),
             email: newUser.email
         }, { status: 201 });

@@ -460,3 +460,64 @@ export const CommunityPost: Model<ICommunityPost> = mongoose.models.CommunityPos
 export const CommunityComment: Model<ICommunityComment> = mongoose.models.CommunityComment || mongoose.model<ICommunityComment>('CommunityComment', CommunityCommentSchema);
 export const CommunityGroup: Model<ICommunityGroup> = mongoose.models.CommunityGroup || mongoose.model<ICommunityGroup>('CommunityGroup', CommunityGroupSchema);
 export const CommunityEvent: Model<ICommunityEvent> = mongoose.models.CommunityEvent || mongoose.model<ICommunityEvent>('CommunityEvent', CommunityEventSchema);
+
+// --- Water Quality Report Schema (Smart Health Surveillance) ---
+export interface IWaterQualityReport extends Document {
+    userId: mongoose.Types.ObjectId;
+    pinCode?: string;
+    location?: { city?: string; state?: string; latitude?: number; longitude?: number };
+    source: string; // 'hand_pump' | 'well' | 'tap' | 'pond' | 'other'
+    turbidity: string; // 'low' | 'medium' | 'high'
+    pH: number;
+    bacterialPresence: 'pass' | 'fail' | 'unknown';
+    notes?: string;
+    reportedAt: Date;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const WaterQualityReportSchema: Schema<IWaterQualityReport> = new Schema({
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    pinCode: { type: String },
+    location: {
+        city: { type: String },
+        state: { type: String },
+        latitude: { type: Number },
+        longitude: { type: Number }
+    },
+    source: { type: String, required: true, enum: ['hand_pump', 'well', 'tap', 'pond', 'other'] },
+    turbidity: { type: String, required: true, enum: ['low', 'medium', 'high'] },
+    pH: { type: Number, required: true },
+    bacterialPresence: { type: String, required: true, enum: ['pass', 'fail', 'unknown'] },
+    notes: { type: String },
+    reportedAt: { type: Date, default: Date.now }
+}, { timestamps: true });
+
+export const WaterQualityReport: Model<IWaterQualityReport> = mongoose.models.WaterQualityReport || mongoose.model<IWaterQualityReport>('WaterQualityReport', WaterQualityReportSchema);
+
+// --- Alert Schema (for health officials / outbreak warnings) ---
+export interface IAlert extends Document {
+    type: 'outbreak_risk' | 'water_contamination' | 'spike_in_cases';
+    severity: 'low' | 'medium' | 'high';
+    area: { pinCode?: string; city?: string; state?: string };
+    message: string;
+    metadata?: Record<string, unknown>;
+    readAt?: Date;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const AlertSchema: Schema<IAlert> = new Schema({
+    type: { type: String, required: true, enum: ['outbreak_risk', 'water_contamination', 'spike_in_cases'] },
+    severity: { type: String, required: true, enum: ['low', 'medium', 'high'] },
+    area: {
+        pinCode: { type: String },
+        city: { type: String },
+        state: { type: String }
+    },
+    message: { type: String, required: true },
+    metadata: { type: Schema.Types.Mixed },
+    readAt: { type: Date }
+}, { timestamps: true });
+
+export const Alert: Model<IAlert> = mongoose.models.Alert || mongoose.model<IAlert>('Alert', AlertSchema);

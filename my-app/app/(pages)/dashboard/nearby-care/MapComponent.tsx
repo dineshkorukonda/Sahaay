@@ -24,9 +24,11 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
             const originalError = console.error;
             console.error = (...args: any[]) => {
                 const message = args.join(' ');
-                if (message.includes('ApiTargetBlockedMapError') || 
+                if (message.includes('ApiTargetBlockedMapError') ||
                     message.includes('api-target-blocked') ||
-                    message.includes('RefererNotAllowed')) {
+                    message.includes('RefererNotAllowed') ||
+                    message.includes('InvalidKeyMapError') ||
+                    message.includes('InvalidKey')) {
                     setApiError(message);
                 }
                 originalError(...args);
@@ -38,7 +40,8 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
         }
     }, []);
 
-    const apiKey = process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '';
+    // Must use NEXT_PUBLIC_* — client components only get env vars prefixed with NEXT_PUBLIC_
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '';
     
     const { isLoaded, loadError } = useJsApiLoader({
         id: 'google-map-script',
@@ -109,11 +112,12 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
             <div className="h-full w-full flex items-center justify-center bg-gray-100">
                 <div className="text-center p-6 bg-white rounded-xl shadow-lg max-w-md">
                     <p className="text-red-600 font-semibold mb-2 text-lg">Google Maps API Key Missing</p>
-                    <p className="text-sm text-muted-foreground mb-4">Please add GOOGLE_API_KEY to your .env file</p>
+                    <p className="text-sm text-muted-foreground mb-4">Maps run in the browser and need a public key. Add this to <strong>my-app/.env</strong>:</p>
                     <div className="text-left text-xs bg-gray-50 p-3 rounded">
-                        <p className="font-semibold mb-1">Add to .env:</p>
-                        <code className="text-xs">GOOGLE_API_KEY=your_api_key_here</code>
+                        <p className="font-semibold mb-1">Add to my-app/.env:</p>
+                        <code className="text-xs block">NEXT_PUBLIC_GOOGLE_API_KEY=your_google_maps_api_key</code>
                     </div>
+                    <p className="text-xs text-amber-700 mt-3">Use the same key as GOOGLE_API_KEY. Restart the dev server after changing .env.</p>
                 </div>
             </div>
         );
@@ -128,12 +132,13 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
 
     if (loadError || apiError) {
         const errorMessage = apiError || loadError?.message || String(loadError) || 'Unknown error';
-        const isBlockedError = hasBlockedError || 
-                              errorMessage.includes('ApiTargetBlockedMapError') || 
+        const isInvalidKeyError = errorMessage.includes('InvalidKeyMapError') || errorMessage.includes('InvalidKey');
+        const isBlockedError = hasBlockedError ||
+                              errorMessage.includes('ApiTargetBlockedMapError') ||
                               errorMessage.includes('api-target-blocked') ||
                               errorMessage.includes('RefererNotAllowedMapError') ||
                               errorMessage.includes('RefererNotAllowed');
-        
+
         return (
             <div className="h-full w-full flex items-center justify-center bg-gray-100 p-4">
                 <div className="text-center p-6 bg-white rounded-xl shadow-lg max-w-2xl">
@@ -145,7 +150,22 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
                         </div>
                         <p className="text-red-600 font-bold mb-2 text-xl">Google Maps API Error</p>
                     </div>
-                    {isBlockedError ? (
+                    {isInvalidKeyError ? (
+                        <>
+                            <p className="text-sm text-gray-700 mb-4 font-medium">
+                                Invalid or missing API key. The map runs in the browser and needs <strong>NEXT_PUBLIC_GOOGLE_API_KEY</strong>.
+                            </p>
+                            <div className="text-left bg-amber-50 p-5 rounded-lg border-2 border-amber-300 mb-4">
+                                <p className="font-bold mb-3 text-sm text-amber-900">Fix:</p>
+                                <ol className="list-decimal list-inside space-y-2 text-xs text-gray-800">
+                                    <li>Create or edit <strong>my-app/.env</strong> (Next.js loads .env from the app folder).</li>
+                                    <li>Add: <code className="bg-white px-1 rounded">NEXT_PUBLIC_GOOGLE_API_KEY=your_key_here</code></li>
+                                    <li>Use the same key as <code>GOOGLE_API_KEY</code> if you have one. Enable &quot;Maps JavaScript API&quot; and &quot;Places API&quot; in <a href="https://console.cloud.google.com/apis/library" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a>.</li>
+                                    <li>Restart the dev server (<code>bun dev</code> or <code>npm run dev</code>).</li>
+                                </ol>
+                            </div>
+                        </>
+                    ) : isBlockedError ? (
                         <>
                             <p className="text-sm text-gray-700 mb-6 font-medium">
                                 Your API key has domain restrictions blocking localhost.

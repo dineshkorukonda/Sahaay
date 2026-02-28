@@ -29,11 +29,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
-        // Check if email is verified (for email-based accounts)
-        if (user.email && !user.isEmailVerified) {
-            return NextResponse.json({ error: 'Please verify your email first. Check your inbox for OTP.' }, { status: 401 });
-        }
-
         if (!user.password) {
             return NextResponse.json({ error: 'Invalid credentials - Please login with correct method' }, { status: 401 });
         }

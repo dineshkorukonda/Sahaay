@@ -1,7 +1,14 @@
 import mongoose from 'mongoose';
 
-// Support both B_URL and DB_URL for flexibility
-const MONGODB_URI = process.env.B_URL || process.env.DB_URL;
+// Support both B_URL and DB_URL for flexibility. In development, fall back to local MongoDB if unset.
+// Set USE_LOCAL_MONGO=1 in .env to force local MongoDB (avoids Atlas DNS/network issues).
+const LOCAL_MONGO = 'mongodb://localhost:27017/sahaay';
+const MONGODB_URI =
+    process.env.USE_LOCAL_MONGO === '1' || process.env.USE_LOCAL_MONGO === 'true'
+        ? LOCAL_MONGO
+        : process.env.B_URL ||
+          process.env.DB_URL ||
+          (process.env.NODE_ENV !== 'production' ? LOCAL_MONGO : undefined);
 
 if (!MONGODB_URI) {
     throw new Error('Please define the B_URL or DB_URL environment variable inside .env');

@@ -11,21 +11,16 @@ import { useToast } from "@/components/ui/toast";
 export default function AuthPage() {
     const [isLogin, setIsLogin] = useState(true);
     const [countryCode, setCountryCode] = useState("+1 (US)");
-    const [showOTP, setShowOTP] = useState(false);
-    const [signupEmail, setSignupEmail] = useState("");
-    const [isResendingOTP, setIsResendingOTP] = useState(false);
     const [loading, setLoading] = useState(false);
     const { showToast } = useToast();
 
     const toggleAuthMode = () => {
         setIsLogin(!isLogin);
-        setShowOTP(false);
-        setSignupEmail("");
     };
 
-    const router = useRouter(); // Initialize router
+    const router = useRouter();
 
-    if (loading && !showOTP) {
+    if (loading) {
         return <Loader fullScreen text="Processing..." />;
     }
 
@@ -78,114 +73,16 @@ export default function AuthPage() {
                     {/* Header */}
                     <div>
                         <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                            {showOTP ? "Verify Your Email" : isLogin ? "Welcome Back" : "Create Account"}
+                            {isLogin ? "Welcome Back" : "Create Account"}
                         </h2>
                         <p className="text-[#22c55e] text-sm font-medium">
-                            {showOTP
-                                ? `We've sent an OTP to ${signupEmail}. Please check your inbox.`
-                                : isLogin
+                            {isLogin
                                 ? "Enter your credentials to access your workspace."
                                 : "Fill in your details to get started."}
                         </p>
                     </div>
 
-                    {/* OTP Verification Form */}
-                    {showOTP ? (
-                        <form className="space-y-6" onSubmit={async (e) => {
-                            e.preventDefault();
-                            const otp = (document.getElementById('otp') as HTMLInputElement).value;
-
-                            if (!otp || otp.length !== 6) {
-                                alert("Please enter a valid 6-digit OTP");
-                                return;
-                            }
-
-                            setLoading(true);
-                            try {
-                                const res = await fetch('/api/auth/verify-otp', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ email: signupEmail, otp })
-                                });
-                                const data = await res.json();
-
-                                if (res.ok) {
-                                    showToast('Email verified successfully!', 'success');
-                                    // Redirect based on onboarding completion status
-                                    setTimeout(() => {
-                                        if (data.hasCompletedOnboarding) {
-                                            router.push('/dashboard');
-                                        } else {
-                                            router.push('/onboarding');
-                                        }
-                                    }, 500);
-                                } else {
-                                    showToast(data.error || "OTP verification failed", 'error');
-                                }
-                            } catch (err) {
-                                console.error(err);
-                                showToast("Something went wrong", 'error');
-                            } finally {
-                                setLoading(false);
-                            }
-                        }}>
-                            <div className="space-y-1">
-                                <label htmlFor="otp" className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                    Enter OTP
-                                </label>
-                                <input
-                                    id="otp"
-                                    type="text"
-                                    required
-                                    maxLength={6}
-                                    placeholder="000000"
-                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:border-transparent transition-all"
-                                    pattern="[0-9]{6}"
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold py-3 rounded-lg shadow-lg shadow-green-500/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
-                            >
-                                {loading ? 'Verifying...' : 'Verify & Continue'}
-                            </button>
-
-                            <div className="text-center">
-                                <button
-                                    type="button"
-                                    onClick={async () => {
-                                        setIsResendingOTP(true);
-                                        try {
-                                            const res = await fetch('/api/auth/resend-otp', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ email: signupEmail })
-                                            });
-                                            const data = await res.json();
-                                            if (res.ok) {
-                                                alert("OTP has been resent to your email");
-                                            } else {
-                                                alert(data.error || "Failed to resend OTP");
-                                            }
-                                        } catch (err) {
-                                            console.error(err);
-                                            alert("Something went wrong");
-                                        } finally {
-                                            setIsResendingOTP(false);
-                                        }
-                                    }}
-                                    disabled={isResendingOTP}
-                                    className="text-[#22c55e] text-sm font-semibold hover:underline disabled:opacity-50"
-                                >
-                                    {isResendingOTP ? "Sending..." : "Resend OTP"}
-                                </button>
-                            </div>
-                        </form>
-                    ) : (
-                        /* Regular Login/Signup Form */
-                        <form className="space-y-6" onSubmit={async (e) => {
+                    <form className="space-y-6" onSubmit={async (e) => {
                             e.preventDefault();
                             const password = (document.getElementById('password') as HTMLInputElement).value;
                             
@@ -249,9 +146,8 @@ export default function AuthPage() {
                                     const data = await res.json();
 
                                     if (res.ok) {
-                                        showToast('OTP sent to your email!', 'success');
-                                        setSignupEmail(formData.email);
-                                        setShowOTP(true);
+                                        showToast('Account created! Please log in.', 'success');
+                                        setIsLogin(true);
                                     } else {
                                         showToast(data.error || "Signup failed", 'error');
                                     }
@@ -375,10 +271,9 @@ export default function AuthPage() {
                                 disabled={loading}
                                 className="w-full bg-[#22c55e] hover:bg-[#16a34a] text-black font-bold py-3 rounded-lg shadow-lg shadow-green-500/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
                             >
-                                {loading ? (isLogin ? "Logging in..." : "Creating account...") : (isLogin ? "Login & Continue" : "Create Account & Send OTP")}
+                                {loading ? (isLogin ? "Logging in..." : "Creating account...") : (isLogin ? "Login & Continue" : "Create Account")}
                             </button>
                         </form>
-                    )}
 
                     {/* Footer */}
                     <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
