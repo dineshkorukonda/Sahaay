@@ -15,7 +15,7 @@ export async function POST(req: Request) {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-pro-latest' });
 
         const prompt = `You are a health surveillance analyst. Review the following recent (last 7 days) waterborne disease risk data for PIN code / Area: ${area}.
         

@@ -22,7 +22,7 @@ async function generateSummaryWithAI(areas: Array<{ area: string; risk: 'low' | 
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-pro-latest' });
 
         const prompt = `You are a health surveillance analyst. Review the following recent waterborne disease risk data for various areas (based on symptom reports and water quality failures).
 Data:
