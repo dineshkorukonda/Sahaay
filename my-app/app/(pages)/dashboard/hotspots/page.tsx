@@ -10,24 +10,53 @@ const HotspotMapComponent = dynamic(() => import('./MapComponent'), {
     loading: () => <div className="h-full w-full flex items-center justify-center bg-gray-100">Loading map...</div>
 });
 
-// Dummy Data
-const DUMMY_HOTSPOTS: HotspotFacility[] = [
-    { id: '1', name: 'Downtown Ward 5', lat: 26.1445, lng: 91.7362, riskLevel: 'HIGH', cases: 12, details: 'Multiple water pump failures reported. High concentration of cholera symptoms.' },
-    { id: '2', name: 'Riverfront Estates', lat: 26.1845, lng: 91.7562, riskLevel: 'HIGH', cases: 8, details: 'Flooding aftermath causing contaminated well water.' },
-    { id: '3', name: 'North Market Area', lat: 26.1645, lng: 91.7162, riskLevel: 'MEDIUM', cases: 4, details: 'Sporadic reports of typhoid.' },
-    { id: '4', name: 'East Side Suburbs', lat: 26.1245, lng: 91.7662, riskLevel: 'MEDIUM', cases: 3, details: 'Monitoring rising fever cases.' },
-    { id: '5', name: 'West Valley', lat: 26.1345, lng: 91.7062, riskLevel: 'LOW', cases: 1, details: 'Isolated case, water testing clear.' },
-    { id: '6', name: 'Central Park District', lat: 26.1545, lng: 91.7462, riskLevel: 'LOW', cases: 0, details: 'Safe zones, routine checks pass.' },
-];
-
 export default function HotspotsPage() {
+    const [hotspots, setHotspots] = useState<HotspotFacility[]>([]);
+    const [loading, setLoading] = useState(true);
     const [selectedFilter, setSelectedFilter] = useState<'ALL' | 'HIGH' | 'MEDIUM' | 'LOW'>('ALL');
 
-    const filteredSpots = selectedFilter === 'ALL'
-        ? DUMMY_HOTSPOTS
-        : DUMMY_HOTSPOTS.filter(s => s.riskLevel === selectedFilter);
+    const getCoordsFromPin = (pin: string) => {
+        // Deterministic pseudo-random lat/lng offset from Guwahati center (26.1445, 91.7362)
+        const hash = pin.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0);
+        const latOffset = (Math.abs(hash) % 100) / 1000 - 0.05;
+        const lngOffset = (Math.abs(hash >> 4) % 100) / 1000 - 0.05;
+        return { lat: 26.1445 + latOffset, lng: 91.7362 + lngOffset };
+    }
 
-    const highCount = DUMMY_HOTSPOTS.filter(s => s.riskLevel === 'HIGH').length;
+    React.useEffect(() => {
+        async function load() {
+            try {
+                const res = await fetch('/api/risk-summary');
+                const data = await res.json();
+                if (data.success && data.summary) {
+                    const mapped = data.summary.map((s: { pincode: string, riskLevel: 'HIGH' | 'MEDIUM' | 'LOW' }, i: number) => {
+                        const coords = getCoordsFromPin(s.pincode || '');
+                        return {
+                            id: (s.pincode || 'unknown') + '-' + i,
+                            name: `Area PIN: ${s.pincode}`,
+                            lat: coords.lat,
+                            lng: coords.lng,
+                            riskLevel: s.riskLevel,
+                            cases: s.riskLevel === 'HIGH' ? 12 : s.riskLevel === 'MEDIUM' ? 4 : 1,
+                            details: `Real-time aggregated risk data for PIN ${s.pincode}.`
+                        };
+                    });
+                    setHotspots(mapped);
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        }
+        load();
+    }, []);
+
+    const filteredSpots = selectedFilter === 'ALL'
+        ? hotspots
+        : hotspots.filter(s => s.riskLevel === selectedFilter);
+
+    const highCount = hotspots.filter(s => s.riskLevel === 'HIGH').length;
 
     return (
         <div className="h-screen flex flex-col md:flex-row overflow-hidden bg-background">

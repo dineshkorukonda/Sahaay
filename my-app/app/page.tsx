@@ -38,31 +38,33 @@ export default function SanctuaryHome() {
         scrolled ? "w-[90%] md:w-auto" : "w-[95%] md:w-auto"
       )}>
         <div className={cn(
-          "flex items-center justify-between px-2 py-2 rounded-full border border-white/20 shadow-lg backdrop-blur-xl transition-all duration-500",
-          scrolled ? "bg-white/90 pl-4 pr-2" : "bg-white/60 pl-6 pr-3"
+          "flex items-center justify-between px-3 py-3 rounded-full border border-white/40 shadow-sm backdrop-blur-xl transition-all duration-500 bg-[#F4F1EA]/95" // matching beige bg
         )}>
-          <div className="flex items-center gap-3 mr-8">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-glow">
-              <Sun className="w-4 h-4 text-primary-foreground" />
+          {/* Logo Section */}
+          <div className="flex items-center gap-3 mr-8 ml-2">
+            <div className="w-10 h-10 rounded-full bg-[#408E5F] flex items-center justify-center shadow-sm">
+              <Sun className="w-5 h-5 text-white" />
             </div>
-            <span className="text-lg font-serif font-bold tracking-tight text-foreground/90 hidden sm:block">Sahaay</span>
+            <span className="text-xl font-serif font-bold tracking-tight text-[#4F3F2F] hidden sm:block">Sahaay</span>
           </div>
 
-          <div className="hidden md:flex items-center gap-1 bg-muted/50 rounded-full px-2 py-1">
+          {/* Links Section */}
+          <div className="hidden md:flex items-center gap-6 px-4">
             {['Surveillance', 'Sanctuary', 'Daily Life', 'Community'].map((item) => (
               <a
                 key={item}
                 href={`#${item.toLowerCase().replace(' ', '-')}`}
-                className="px-4 py-1.5 text-sm font-medium rounded-full hover:bg-white hover:shadow-sm transition-all text-muted-foreground hover:text-foreground"
+                className="text-[15px] font-medium transition-all text-[#7A6A5C] hover:text-[#4F3F2F]"
               >
                 {item}
               </a>
             ))}
           </div>
 
-          <div className="flex items-center gap-2 ml-4 md:ml-8">
+          {/* Button Section */}
+          <div className="flex items-center ml-4 md:ml-8">
             <Link href="/auth/login">
-              <Button className="rounded-full bg-primary text-white hover:bg-primary/90 px-6 h-10 shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95">
+              <Button className="rounded-full bg-[#408E5F] text-white hover:bg-[#347A50] px-7 h-11 text-[15px] font-medium shadow-sm transition-all hover:scale-105">
                 Begin Journey
               </Button>
             </Link>
