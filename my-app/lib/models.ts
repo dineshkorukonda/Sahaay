@@ -497,27 +497,19 @@ export const WaterQualityReport: Model<IWaterQualityReport> = mongoose.models.Wa
 
 // --- Alert Schema (for health officials / outbreak warnings) ---
 export interface IAlert extends Document {
-    type: 'outbreak_risk' | 'water_contamination' | 'spike_in_cases';
-    severity: 'low' | 'medium' | 'high';
-    area: { pinCode?: string; city?: string; state?: string };
+    pincode: string;
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
     message: string;
-    metadata?: Record<string, unknown>;
-    readAt?: Date;
-    createdAt: Date;
-    updatedAt: Date;
+    triggeredAt: Date;
+    status: 'ACTIVE' | 'RESOLVED';
 }
 
 const AlertSchema: Schema<IAlert> = new Schema({
-    type: { type: String, required: true, enum: ['outbreak_risk', 'water_contamination', 'spike_in_cases'] },
-    severity: { type: String, required: true, enum: ['low', 'medium', 'high'] },
-    area: {
-        pinCode: { type: String },
-        city: { type: String },
-        state: { type: String }
-    },
+    pincode: { type: String, required: true },
+    riskLevel: { type: String, required: true, enum: ['LOW', 'MEDIUM', 'HIGH'] },
     message: { type: String, required: true },
-    metadata: { type: Schema.Types.Mixed },
-    readAt: { type: Date }
+    triggeredAt: { type: Date, default: Date.now },
+    status: { type: String, required: true, enum: ['ACTIVE', 'RESOLVED'], default: 'ACTIVE' }
 }, { timestamps: true });
 
 export const Alert: Model<IAlert> = mongoose.models.Alert || mongoose.model<IAlert>('Alert', AlertSchema);

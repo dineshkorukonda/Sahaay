@@ -10,7 +10,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Sahaay - Simple chronic care support for everyday life",
+  title: "Sahaay",
   description: "Helping underserved communities manage health with guidance, care access, and community support.",
 };
 

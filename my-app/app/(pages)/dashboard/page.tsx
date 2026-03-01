@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Bell, Flame, Medal, CheckCircle2, Pill } from "lucide-react";
+import { Bell, Flame, Medal, CheckCircle2, Pill, Activity } from "lucide-react";
 import Image from "next/image";
 import { Loader } from "@/components/ui/loader";
 import { useToast } from "@/components/ui/toast";
@@ -22,27 +22,66 @@ interface DashboardData {
     actions?: DashboardAction[];
 }
 
+interface AlertData {
+    _id: string;
+    pincode: string;
+    riskLevel: string;
+    message: string;
+    triggeredAt: string;
+}
+
+interface RiskSummary {
+    pincode: string;
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+    lastUpdated: string;
+}
+
 export default function DashboardPage() {
     const [data, setData] = React.useState<DashboardData | null>(null);
+    const [alerts, setAlerts] = React.useState<AlertData[]>([]);
+    const [hotspots, setHotspots] = React.useState<RiskSummary[]>([]);
     const [loading, setLoading] = React.useState(true);
     const { showToast } = useToast();
 
     React.useEffect(() => {
-        const fetchData = async () => {
+        const fetchAllData = async () => {
             try {
-                const res = await fetch('/api/dashboard/home');
-                const json = await res.json();
-                if (json.success) {
-                    setData(json.data);
-                }
+                const [dashRes, alertsRes, hotspotsRes] = await Promise.all([
+                    fetch('/api/dashboard/home'),
+                    fetch('/api/alerts'),
+                    fetch('/api/risk-summary')
+                ]);
+
+                const dashJson = await dashRes.json();
+                if (dashJson.success) setData(dashJson.data);
+
+                const alertsJson = await alertsRes.json();
+                if (alertsJson.success) setAlerts(alertsJson.alerts);
+
+                const hotspotsJson = await hotspotsRes.json();
+                if (hotspotsJson.success) setHotspots(hotspotsJson.summary);
+
             } catch (e) {
-                console.error(e);
+                console.error("Dashboard fetch error:", e);
             } finally {
                 setLoading(false);
             }
         };
-        fetchData();
+        fetchAllData();
     }, []);
+
+    const markAlertResolved = async (id: string) => {
+        try {
+            const res = await fetch(`/api/alerts/${id}`, { method: 'PATCH' });
+            if (res.ok) {
+                setAlerts(prev => prev.filter(a => a._id !== id));
+                showToast('Alert resolved', 'success');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Failed to resolve alert', 'error');
+        }
+    };
 
     if (loading) {
         return <Loader fullScreen text="Loading dashboard..." />;
@@ -55,6 +94,39 @@ export default function DashboardPage() {
 
     return (
         <div className="p-8 min-h-screen space-y-8">
+            {/* District Alerts Panel */}
+            <div className={`mb-6 p-4 rounded-xl border ${alerts.length > 0 ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
+                {alerts.length > 0 ? (
+                    <div className="space-y-3">
+                        {alerts.map(alert => (
+                            <div key={alert._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 bg-white rounded-lg border border-red-100 shadow-sm">
+                                <div className="flex items-start gap-3">
+                                    <Activity className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <h4 className="font-bold text-red-700">⚠ High Risk Detected in PIN {alert.pincode}</h4>
+                                        <p className="text-sm text-red-600/90">{alert.message}</p>
+                                        <span className="text-xs text-red-400 mt-1 block">
+                                            {new Date(alert.triggeredAt).toLocaleString()}
+                                        </span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => markAlertResolved(alert._id)}
+                                    className="text-sm px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded-lg transition-colors whitespace-nowrap"
+                                >
+                                    Mark as Resolved
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-3 text-emerald-700 px-2 py-1">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                        <h4 className="font-bold">No Active Alerts</h4>
+                    </div>
+                )}
+            </div>
+
             {/* Header */}
             <header className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">Main Dashboard</h1>
@@ -76,7 +148,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-3">
                         <div className="text-right">
                             <p className="text-sm font-bold leading-none">{userName}</p>
-                            <p className="text-xs text-muted-foreground pt-1">Patient ID: #{user?._id?.toString().slice(-4)}</p>
+                            <p className="text-xs text-muted-foreground pt-1">Patient ID: #{user?._id?.toString().slice(-4) || '0000'}</p>
                         </div>
                         <div className="h-10 w-10 rounded-full bg-emerald-100 overflow-hidden border border-white shadow-sm">
                             <Image src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=100&h=100" alt="Profile" width={40} height={40} className="h-full w-full object-cover" />
@@ -112,6 +184,48 @@ export default function DashboardPage() {
                         )}
                     </div>
 
+                    {/* Outbreak Hotspots Section */}
+                    {hotspots.length > 0 && (
+                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/40 my-8">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-bold flex items-center gap-2 text-foreground">
+                                    <Activity className="h-5 w-5 text-primary" /> Outbreak Hotspots by PIN Code
+                                </h3>
+                                <div className="flex gap-4 text-xs font-medium text-muted-foreground">
+                                    <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500"></div> Immediate Attention</span>
+                                    <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-yellow-500"></div> Monitor Closely</span>
+                                    <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Safe</span>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                {hotspots
+                                    .sort((a, b) => {
+                                        const rank = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+                                        return rank[a.riskLevel] - rank[b.riskLevel];
+                                    })
+                                    .map(spot => {
+                                        const isHigh = spot.riskLevel === 'HIGH';
+                                        const isMedium = spot.riskLevel === 'MEDIUM';
+                                        return (
+                                            <div key={spot.pincode} className={`p-4 rounded-2xl border flex flex-col items-center justify-center text-center transition-all ${isHigh ? 'bg-red-50 border-red-200 text-red-900' :
+                                                    isMedium ? 'bg-yellow-50 border-yellow-200 text-yellow-900' :
+                                                        'bg-emerald-50 border-emerald-200 text-emerald-900'
+                                                }`}>
+                                                <span className="text-2xl font-black mb-1 opacity-90">{spot.pincode}</span>
+                                                <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full ${isHigh ? 'bg-red-200 text-red-800' :
+                                                        isMedium ? 'bg-yellow-200 text-yellow-800' :
+                                                            'bg-emerald-200 text-emerald-800'
+                                                    }`}>
+                                                    {spot.riskLevel}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        </div>
+                    )}
+
+
                     <div className="flex gap-4">
                         <button className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all active:scale-95">
                             View Health Report
@@ -123,7 +237,7 @@ export default function DashboardPage() {
 
                     {/* Medication Reminders - Priority Section */}
                     {actions && actions.filter((a: DashboardAction) => a.type === 'medication').length > 0 && (
-                        <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-3xl p-6 border border-emerald-200 shadow-sm">
+                        <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-3xl p-6 border border-emerald-200 shadow-sm mt-6">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="h-10 w-10 bg-emerald-500 rounded-lg flex items-center justify-center text-white">
                                     <Pill className="h-5 w-5" />
@@ -150,13 +264,13 @@ export default function DashboardPage() {
                                                     // Get current care plan
                                                     const carePlanRes = await fetch('/api/care-plan');
                                                     const carePlanJson = await carePlanRes.json();
-                                                    
+
                                                     if (carePlanJson.success && carePlanJson.data) {
                                                         const meds = [...(carePlanJson.data.medications || [])];
                                                         const medIndex = parseInt(action.id.replace('med-', ''));
                                                         if (meds[medIndex]) {
                                                             meds[medIndex] = { ...meds[medIndex], status: 'completed' };
-                                                            
+
                                                             const res = await fetch('/api/care-plan', {
                                                                 method: 'PUT',
                                                                 headers: { 'Content-Type': 'application/json' },
@@ -164,7 +278,7 @@ export default function DashboardPage() {
                                                                     medications: meds
                                                                 })
                                                             });
-                                                            
+
                                                             if (res.ok) {
                                                                 // Award points
                                                                 await fetch('/api/health-stats/update', {
@@ -173,7 +287,7 @@ export default function DashboardPage() {
                                                                     body: JSON.stringify({ points: 15 })
                                                                 });
                                                                 showToast('Medication logged! +15 points', 'success');
-                                                                
+
                                                                 // Refresh data
                                                                 const refreshRes = await fetch('/api/dashboard/home');
                                                                 const refreshJson = await refreshRes.json();
@@ -288,7 +402,7 @@ export default function DashboardPage() {
                         </>
                     )}
 
-                    {/* Family Card - Removed dummy data */}
+                    {/* Family Card */}
                     <div className="bg-[#1C211E] rounded-3xl p-6 text-white relative overflow-hidden">
                         <div className="relative z-10">
                             <h3 className="font-bold text-lg mb-2">Connect with Family</h3>

@@ -60,7 +60,7 @@ export default function WaterQualityPage() {
 
     useEffect(() => {
         fetchReports();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -146,16 +146,34 @@ export default function WaterQualityPage() {
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">pH *</label>
-                    <input
-                        type="number"
-                        min={0}
-                        max={14}
-                        step={0.1}
-                        className="w-full border border-border rounded-lg px-3 py-2"
-                        value={form.pH}
-                        onChange={(e) => setForm({ ...form, pH: parseFloat(e.target.value) || 7 })}
-                    />
+                    <label className="block text-sm font-medium mb-1">pH * <span className="text-muted-foreground font-normal">(6.5 - 8.5 is safe)</span></label>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-4">
+                            <input
+                                type="range"
+                                min={0}
+                                max={14}
+                                step={0.1}
+                                className="flex-1 h-2 rounded-lg appearance-none cursor-pointer"
+                                style={{
+                                    background: 'linear-gradient(to right, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 50%, #3b82f6 70%, #a855f7 100%)'
+                                }}
+                                value={form.pH}
+                                onChange={(e) => setForm({ ...form, pH: parseFloat(e.target.value) || 0 })}
+                            />
+                            <div className={`font-bold w-16 text-center px-2 py-1 rounded-lg border ${form.pH >= 6.5 && form.pH <= 8.5 ? "bg-green-50 text-green-700 border-green-200" :
+                                form.pH < 6.5 ? "bg-orange-50 text-orange-700 border-orange-200" :
+                                    "bg-purple-50 text-purple-700 border-purple-200"
+                                }`}>
+                                {form.pH.toFixed(1)}
+                            </div>
+                        </div>
+                        <div className="flex justify-between text-xs font-medium text-muted-foreground">
+                            <span>Acidic (Bad)</span>
+                            <span className="text-green-600 font-bold">Neutral (Good)</span>
+                            <span>Alkaline (Bad)</span>
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">Bacterial presence *</label>
@@ -206,7 +224,14 @@ export default function WaterQualityPage() {
                                 <div className="flex-1">
                                     <span className="font-medium capitalize">{r.source.replace("_", " ")}</span>
                                     {r.pinCode && <span className="text-muted-foreground ml-2">PIN {r.pinCode}</span>}
-                                    <span className="text-muted-foreground ml-2">pH {r.pH}, Turbidity: {r.turbidity}</span>
+                                    <span className="ml-2">
+                                        <span className="text-muted-foreground">pH: </span>
+                                        <span className={
+                                            r.pH >= 6.5 && r.pH <= 8.5 ? "text-green-600 font-medium" :
+                                                r.pH < 6.5 ? "text-orange-600 font-medium" : "text-purple-600 font-medium"
+                                        }>{r.pH.toFixed(1)}</span>
+                                        <span className="text-muted-foreground">, Turbidity: {r.turbidity}</span>
+                                    </span>
                                 </div>
                                 <span className="text-sm text-muted-foreground">
                                     {new Date(r.reportedAt).toLocaleDateString()}

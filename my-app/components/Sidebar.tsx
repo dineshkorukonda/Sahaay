@@ -11,7 +11,6 @@ import {
     Settings,
     MapPin,
     HeartPulse,
-    Syringe,
     AlertTriangle,
     LogOut,
     Droplets,
@@ -26,7 +25,7 @@ const navigation = [
     { name: "Nearby Care", href: "/dashboard/nearby-care", icon: MapPin },
     { name: "Health Summary", href: "/dashboard/health-summary", icon: Activity },
     { name: "Care Plan", href: "/dashboard/care-plan", icon: FileText },
-    { name: "Achievements", href: "/dashboard/achievements", icon: Syringe },
+    { name: "Hotspot Map", href: "/dashboard/hotspots", icon: MapPin },
     { name: "Community", href: "/dashboard/community", icon: Users },
     { name: "Family", href: "/dashboard/family", icon: Users },
     { name: "Support", href: "/dashboard/support", icon: LifeBuoy },
@@ -80,7 +79,7 @@ export function Sidebar() {
                     <AlertTriangle className="h-5 w-5 fill-white text-white" />
                     Emergency SOS
                 </button>
-                <button 
+                <button
                     onClick={async () => {
                         try {
                             const res = await fetch('/api/auth/logout', {

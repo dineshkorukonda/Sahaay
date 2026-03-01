@@ -24,7 +24,7 @@ export default function OutbreakRiskPage() {
         const fetchRisk = async () => {
             setLoading(true);
             try {
-                const res = await fetch("/api/outbreak-risk?demo=1");
+                const res = await fetch("/api/outbreak-risk");
                 const json = await res.json();
                 if (json.success) {
                     setData({
@@ -107,19 +107,17 @@ export default function OutbreakRiskPage() {
                         {data.areas.map((a) => (
                             <li
                                 key={a.area}
-                                className={`p-4 rounded-xl border ${
-                                    a.risk === "high" ? "border-red-200 bg-red-50" :
-                                    a.risk === "medium" ? "border-amber-200 bg-amber-50" :
-                                    "border-green-200 bg-green-50"
-                                }`}
+                                className={`p-4 rounded-xl border ${a.risk === "high" ? "border-red-200 bg-red-50" :
+                                        a.risk === "medium" ? "border-amber-200 bg-amber-50" :
+                                            "border-green-200 bg-green-50"
+                                    }`}
                             >
                                 <div className="flex items-center justify-between flex-wrap gap-2">
                                     <span className="font-medium">{a.area === "unknown" ? "Unspecified area" : a.area}</span>
-                                    <span className={`px-2 py-1 rounded-full text-sm font-medium shrink-0 ${
-                                        a.risk === "high" ? "bg-red-200 text-red-800" :
-                                        a.risk === "medium" ? "bg-amber-200 text-amber-800" :
-                                        "bg-green-200 text-green-800"
-                                    }`}>
+                                    <span className={`px-2 py-1 rounded-full text-sm font-medium shrink-0 ${a.risk === "high" ? "bg-red-200 text-red-800" :
+                                            a.risk === "medium" ? "bg-amber-200 text-amber-800" :
+                                                "bg-green-200 text-green-800"
+                                        }`}>
                                         {a.risk.toUpperCase()}
                                     </span>
                                 </div>
