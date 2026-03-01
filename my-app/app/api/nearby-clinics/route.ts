@@ -153,16 +153,16 @@ export async function GET(req: Request) {
                         }
                     })
                 });
-                
+
                 const placesData = await response.json();
-                
+
                 if (placesData.places) {
                     const mapped = placesData.places.slice(0, 5).map((place: { name?: string; displayName?: { text?: string }; formattedAddress?: string; location?: { latitude?: number; longitude?: number }; regularOpeningHours?: { openNow?: boolean } }) => ({ // Limit 5 per category
                         id: place.name, // Resource name (e.g., places/ChIJ...)
                         name: place.displayName?.text || 'Unknown Name',
                         address: place.formattedAddress || 'No address',
                         distance: calculateDistance(lat!, lon!, place.location?.latitude ?? 0, place.location?.longitude ?? 0).toFixed(1) + ' km',
-                        phone: 'View on map', 
+                        phone: 'View on map',
                         hours: place.regularOpeningHours?.openNow ? 'Open Now' : 'Check hours',
                         latitude: place.location?.latitude,
                         longitude: place.location?.longitude,
@@ -182,7 +182,7 @@ export async function GET(req: Request) {
         }));
 
         // Sort by distance
-        const sortedFacilities = facilities.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+        const sortedFacilities = facilities.sort((a, b) => parseFloat(a.distance || '0') - parseFloat(b.distance || '0'));
 
         return NextResponse.json({
             success: true,

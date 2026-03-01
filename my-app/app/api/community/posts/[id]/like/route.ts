@@ -33,7 +33,7 @@ export async function POST(
 ) {
     try {
         await connectDB();
-        
+
         const userId = await getUserId(req);
         if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -41,7 +41,7 @@ export async function POST(
 
         const { id } = await params;
         const post = await CommunityPost.findById(id);
-        
+
         if (!post) {
             return NextResponse.json({ error: 'Post not found' }, { status: 404 });
         }
@@ -53,7 +53,7 @@ export async function POST(
             post.likes = post.likes.filter((likeId: unknown) => String(likeId) !== userId);
         } else {
             // Like
-            post.likes.push(userId);
+            post.likes.push(userId as any);
         }
 
         await post.save();

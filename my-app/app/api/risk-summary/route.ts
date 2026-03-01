@@ -65,22 +65,25 @@ export async function GET() {
             };
         });
 
-        // Generate synthetic data if nothing in DB for presentation
-        // We only do this if summary is empty so the dashboard has something to show
-        if (summary.length === 0 || summary.every(s => s.pincode === 'unknown')) {
-            const mockSummary = [
-                { pincode: '781001', riskLevel: 'HIGH', lastUpdated: new Date() },
-                { pincode: '781006', riskLevel: 'MEDIUM', lastUpdated: new Date() },
-                { pincode: '781028', riskLevel: 'LOW', lastUpdated: new Date() },
-                { pincode: '781040', riskLevel: 'MEDIUM', lastUpdated: new Date() },
-                { pincode: '781123', riskLevel: 'HIGH', lastUpdated: new Date() },
-            ];
+        // Merge synthetic data with real data so the dashboard always has something to show
+        const mockSummary = [
+            { pincode: '781001', riskLevel: 'HIGH', lastUpdated: new Date() },
+            { pincode: '781006', riskLevel: 'MEDIUM', lastUpdated: new Date() },
+            { pincode: '781028', riskLevel: 'LOW', lastUpdated: new Date() },
+            { pincode: '781040', riskLevel: 'MEDIUM', lastUpdated: new Date() },
+            { pincode: '781123', riskLevel: 'HIGH', lastUpdated: new Date() },
+        ];
 
-            return NextResponse.json({ success: true, summary: mockSummary });
-        }
+        const summaryMap = new Map();
+        mockSummary.forEach(m => summaryMap.set(m.pincode, m));
 
-        // Filter out 'unknown' areas for the clean dashboard view
-        const filteredSummary = summary.filter((s) => s.pincode !== 'unknown');
+        summary.forEach(s => {
+            if (s.pincode !== 'unknown') {
+                summaryMap.set(s.pincode, s);
+            }
+        });
+
+        const filteredSummary = Array.from(summaryMap.values());
 
         return NextResponse.json({ success: true, summary: filteredSummary });
 

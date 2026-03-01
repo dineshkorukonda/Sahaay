@@ -33,14 +33,14 @@ export async function GET(
 ) {
     try {
         await connectDB();
-        
+
         const { id } = await params;
         const comments = await CommunityComment.find({ postId: id })
             .sort({ createdAt: -1 })
             .populate('userId', 'name email')
             .lean();
 
-        const formattedComments = comments.map((comment: Record<string, unknown> & { _id: { toString(): string }; author?: string; userId?: { name?: string }; avatar?: string; content?: string; createdAt: string | Date }) => ({
+        const formattedComments = comments.map((comment: any) => ({
             id: comment._id.toString(),
             author: comment.author || comment.userId?.name || 'Anonymous',
             avatar: comment.avatar || (comment.userId?.name ? comment.userId.name.substring(0, 2).toUpperCase() : 'U'),

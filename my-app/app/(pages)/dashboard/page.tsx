@@ -18,7 +18,16 @@ interface DashboardAction {
 interface DashboardData {
     user?: { name?: string; _id?: string };
     profile?: unknown;
-    stats?: { streak?: number; points?: number };
+    stats?: {
+        streak?: number;
+        points?: number;
+        vitals?: {
+            bp?: string;
+            hr?: string | number;
+            weight?: string | number;
+            temp?: string | number;
+        }
+    };
     actions?: DashboardAction[];
 }
 
@@ -208,13 +217,13 @@ export default function DashboardPage() {
                                         const isMedium = spot.riskLevel === 'MEDIUM';
                                         return (
                                             <div key={spot.pincode} className={`p-4 rounded-2xl border flex flex-col items-center justify-center text-center transition-all ${isHigh ? 'bg-red-50 border-red-200 text-red-900' :
-                                                    isMedium ? 'bg-yellow-50 border-yellow-200 text-yellow-900' :
-                                                        'bg-emerald-50 border-emerald-200 text-emerald-900'
+                                                isMedium ? 'bg-yellow-50 border-yellow-200 text-yellow-900' :
+                                                    'bg-emerald-50 border-emerald-200 text-emerald-900'
                                                 }`}>
                                                 <span className="text-2xl font-black mb-1 opacity-90">{spot.pincode}</span>
                                                 <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full ${isHigh ? 'bg-red-200 text-red-800' :
-                                                        isMedium ? 'bg-yellow-200 text-yellow-800' :
-                                                            'bg-emerald-200 text-emerald-800'
+                                                    isMedium ? 'bg-yellow-200 text-yellow-800' :
+                                                        'bg-emerald-200 text-emerald-800'
                                                     }`}>
                                                     {spot.riskLevel}
                                                 </span>

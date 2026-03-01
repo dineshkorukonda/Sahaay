@@ -13,7 +13,7 @@ const JWT_SECRET = new TextEncoder().encode(
 export async function GET(req: Request) {
     try {
         await connectDB();
-        
+
         // Support both Bearer token (mobile) and cookie (web)
         const authHeader = req.headers.get('authorization');
         let userId: string;
@@ -105,10 +105,10 @@ export async function GET(req: Request) {
             doc.line(14, finalY + 2, 65, finalY + 2);
 
             const medRows = carePlan.medications.map((med: { name?: string; dosage?: string; frequency?: string; time?: string }) => [
-                med.name,
-                med.dosage,
-                med.frequency,
-                med.time
+                med.name || '',
+                med.dosage || '',
+                med.frequency || '',
+                med.time || ''
             ]);
 
             autoTable(doc, {

@@ -12,7 +12,7 @@ const JWT_SECRET = new TextEncoder().encode(
 async function getUserId(req: Request): Promise<string | null> {
     try {
         const authHeader = req.headers.get('authorization');
-        
+
         if (authHeader?.startsWith('Bearer ')) {
             const token = authHeader.substring(7);
             const { payload } = await jwtVerify(token, JWT_SECRET);
@@ -32,7 +32,7 @@ async function getUserId(req: Request): Promise<string | null> {
 export async function GET(_req: Request) {
     try {
         await connectDB();
-        
+
         const posts = await CommunityPost.find()
             .sort({ createdAt: -1 })
             .limit(50)
@@ -40,7 +40,7 @@ export async function GET(_req: Request) {
             .lean();
 
         // Format posts for frontend
-        const formattedPosts = posts.map((post: Record<string, unknown> & { _id: { toString(): string }; createdAt: string | Date; author?: string; userId?: { name?: string }; avatar?: string; content?: string; category?: string; likes?: unknown[]; comments?: unknown[] }) => {
+        const formattedPosts = posts.map((post: any) => {
             const timeAgo = getTimeAgo(new Date(post.createdAt));
             return {
                 id: post._id.toString(),
@@ -69,7 +69,7 @@ export async function GET(_req: Request) {
 export async function POST(req: Request) {
     try {
         await connectDB();
-        
+
         const userId = await getUserId(req);
         if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -121,7 +121,7 @@ export async function POST(req: Request) {
 function getTimeAgo(date: Date): string {
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
+
     if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;

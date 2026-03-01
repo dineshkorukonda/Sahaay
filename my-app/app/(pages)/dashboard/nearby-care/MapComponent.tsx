@@ -12,6 +12,7 @@ export interface MapFacility {
     lng: number;
     type?: string;
     address?: string;
+    phone?: string;
     [key: string]: unknown;
 }
 
@@ -52,7 +53,7 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
 
     // Must use NEXT_PUBLIC_* — client components only get env vars prefixed with NEXT_PUBLIC_
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '';
-    
+
     const { isLoaded, loadError } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: apiKey,
@@ -71,7 +72,7 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
     const onLoad = useCallback((mapInstance: google.maps.Map) => {
         mapRef.current = mapInstance;
         setMap(mapInstance);
-        
+
         // Set initial center
         if (center && center[0] && center[1]) {
             mapInstance.setCenter({ lat: center[0], lng: center[1] });
@@ -94,7 +95,7 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
         if (typeof window === 'undefined' || !window.google?.maps) {
             return undefined; // Use default marker if Google Maps not loaded
         }
-        
+
         const colors: Record<string, string> = {
             'HOSPITAL': '#10b981', // emerald
             'CLINIC': '#3b82f6', // blue
@@ -102,10 +103,10 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
             'NGO': '#a855f7' // purple
         };
         const color = colors[type] || '#6b7280';
-        
+
         // Custom pin shape SVG path
         const pinPath = 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z';
-        
+
         return {
             path: pinPath,
             fillColor: color,
@@ -144,10 +145,10 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
         const errorMessage = apiError || loadError?.message || String(loadError) || 'Unknown error';
         const isInvalidKeyError = errorMessage.includes('InvalidKeyMapError') || errorMessage.includes('InvalidKey');
         const isBlockedError = hasBlockedError ||
-                              errorMessage.includes('ApiTargetBlockedMapError') ||
-                              errorMessage.includes('api-target-blocked') ||
-                              errorMessage.includes('RefererNotAllowedMapError') ||
-                              errorMessage.includes('RefererNotAllowed');
+            errorMessage.includes('ApiTargetBlockedMapError') ||
+            errorMessage.includes('api-target-blocked') ||
+            errorMessage.includes('RefererNotAllowedMapError') ||
+            errorMessage.includes('RefererNotAllowed');
 
         return (
             <div className="h-full w-full flex items-center justify-center bg-gray-100 p-4">
@@ -214,7 +215,7 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                 <p className="text-xs text-blue-900 font-semibold mb-1">💡 Alternative for Development:</p>
                                 <p className="text-xs text-blue-800">
-                                    You can temporarily set &quot;Application restrictions&quot; to <strong>&quot;None&quot;</strong> for local development, 
+                                    You can temporarily set &quot;Application restrictions&quot; to <strong>&quot;None&quot;</strong> for local development,
                                     but remember to add restrictions before deploying to production.
                                 </p>
                             </div>
@@ -243,7 +244,7 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
         );
     }
 
-    const mapCenter = center && center[0] && center[1] 
+    const mapCenter = center && center[0] && center[1]
         ? { lat: center[0], lng: center[1] }
         : { lat: 28.6139, lng: 77.2090 }; // Default to Delhi
 
@@ -282,12 +283,12 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
 
             {/* Facility Markers */}
             {facilities.map((facility) => {
-                if (facility.latitude && facility.longitude) {
+                if (facility.lat && facility.lng) {
                     return (
                         <Marker
                             key={facility.id}
-                            position={{ lat: facility.latitude, lng: facility.longitude }}
-                            icon={getMarkerIcon(facility.type)}
+                            position={{ lat: facility.lat, lng: facility.lng }}
+                            icon={getMarkerIcon(facility.type || '')}
                             onClick={() => setSelectedFacility(facility)}
                             title={facility.name}
                         />
@@ -300,8 +301,8 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
             {selectedFacility && (
                 <InfoWindow
                     position={{
-                        lat: selectedFacility.latitude,
-                        lng: selectedFacility.longitude
+                        lat: selectedFacility.lat,
+                        lng: selectedFacility.lng
                     }}
                     onCloseClick={() => setSelectedFacility(null)}
                 >
@@ -314,7 +315,7 @@ export default function MapComponent({ center, userLocation, facilities, onMapCl
                         )}
                         <div className="flex gap-2 mt-2">
                             <a
-                                href={`https://www.google.com/maps/dir/?api=1&destination=${selectedFacility.latitude},${selectedFacility.longitude}`}
+                                href={`https://www.google.com/maps/dir/?api=1&destination=${selectedFacility.lat},${selectedFacility.lng}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs text-blue-600 hover:underline"

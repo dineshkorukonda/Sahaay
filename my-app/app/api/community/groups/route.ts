@@ -30,13 +30,12 @@ async function getUserId(req: Request): Promise<string | null> {
 export async function GET(_req: Request) {
     try {
         await connectDB();
-        
+
         const groups = await CommunityGroup.find()
             .sort({ members: -1 })
             .populate('createdBy', 'name')
             .lean();
-
-        const formattedGroups = groups.map((group: Record<string, unknown> & { _id: { toString(): string }; name?: string; description?: string; image?: string; members?: unknown[]; tags?: unknown[] }) => ({
+        const formattedGroups = groups.map((group: any) => ({
             id: group._id.toString(),
             name: group.name,
             description: group.description,
@@ -59,7 +58,7 @@ export async function GET(_req: Request) {
 export async function POST(req: Request) {
     try {
         await connectDB();
-        
+
         const userId = await getUserId(req);
         if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -76,7 +75,7 @@ export async function POST(req: Request) {
 
             const isMember = group.members.some((memberId: unknown) => String(memberId) === userId);
             if (!isMember) {
-                group.members.push(userId);
+                group.members.push(userId as any);
                 await group.save();
             }
 

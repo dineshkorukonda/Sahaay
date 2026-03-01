@@ -27,7 +27,7 @@ const navigation = [
     { name: "Care Plan", href: "/dashboard/care-plan", icon: FileText },
     { name: "Hotspot Map", href: "/dashboard/hotspots", icon: MapPin },
     { name: "Community", href: "/dashboard/community", icon: Users },
-    { name: "Family", href: "/dashboard/family", icon: Users },
+    // { name: "Family", href: "/dashboard/family", icon: Users },
     { name: "Support", href: "/dashboard/support", icon: LifeBuoy },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

@@ -180,7 +180,7 @@ export async function POST(_req: Request) {
       carePlanData.medications = actualMedications.map(actualMed => {
         // Find matching scheduled medication from LLM
         const scheduled = scheduledMeds.find((s: { name?: string; dosage?: string; frequency?: string; time?: string }) =>
-          s.name.toLowerCase() === actualMed.name.toLowerCase()
+          s.name?.toLowerCase() === actualMed.name?.toLowerCase()
         );
         return {
           name: actualMed.name,
@@ -221,7 +221,7 @@ export async function POST(_req: Request) {
         return {
           ...daySchedule,
           date: dayDate.toISOString().split('T')[0],
-          appointments: (daySchedule.appointments || []).map((apt: Record<string, unknown>) => ({
+          appointments: (Array.isArray(daySchedule.appointments) ? daySchedule.appointments : []).map((apt: any) => ({
             ...apt,
             status: 'pending'
           }))
@@ -249,9 +249,9 @@ export async function POST(_req: Request) {
 
     if (carePlanData.weeklySchedule) {
       carePlanData.weeklySchedule.forEach((day: Record<string, unknown>) => {
-        if (day.appointments) {
-          day.appointments.forEach((apt: Record<string, unknown>) => {
-            if (Array.isArray(apt.time)) apt.time = apt.time.join(', ');
+        if (Array.isArray(day.appointments)) {
+          day.appointments.forEach((apt: any) => {
+            if (apt && Array.isArray(apt.time)) apt.time = apt.time.join(', ');
           });
         }
       });

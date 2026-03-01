@@ -85,8 +85,26 @@ export async function GET(req: Request) {
             return { area, risk, symptomCount: data.symptomCount, waterFailCount: data.waterFailCount || 0 };
         });
 
+        const mockAreas = [
+            { area: '781001', risk: 'high', symptomCount: 12, waterFailCount: 3 },
+            { area: '781006', risk: 'medium', symptomCount: 4, waterFailCount: 1 },
+            { area: '781028', risk: 'low', symptomCount: 1, waterFailCount: 0 },
+            { area: '781040', risk: 'medium', symptomCount: 3, waterFailCount: 1 },
+            { area: '781123', risk: 'high', symptomCount: 8, waterFailCount: 2 },
+        ];
+
+        const areaMap = new Map();
+        mockAreas.forEach(m => areaMap.set(m.area, m));
+        areas.forEach(a => {
+            if (a.area !== 'unknown') {
+                areaMap.set(a.area, a);
+            }
+        });
+
+        const mergedAreas = Array.from(areaMap.values());
+
         // Trigger Alerts for HIGH risk areas
-        for (const a of areas) {
+        for (const a of mergedAreas) {
             if (a.risk === 'high' && a.area && a.area !== 'unknown') {
                 // Check if an ACTIVE alert already exists for this PIN code
                 const existingAlert = await Alert.findOne({
@@ -105,7 +123,7 @@ export async function GET(req: Request) {
             }
         }
 
-        const filtered = pinCode ? areas.filter((a) => a.area === pinCode) : areas;
+        const filtered = pinCode ? mergedAreas.filter((a) => a.area === pinCode) : mergedAreas;
 
         const aiSummary = await generateSummaryWithAI(filtered);
 

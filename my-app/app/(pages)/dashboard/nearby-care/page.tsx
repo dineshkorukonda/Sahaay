@@ -29,7 +29,7 @@ export default function NearbyCarePage() {
 
     useEffect(() => {
         fetchFacilities();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once on mount
     }, []);
 
     // Force map update when mapCenter changes
@@ -322,7 +322,7 @@ export default function NearbyCarePage() {
                                     <div>
                                         <h3 className="font-bold text-lg">{center.name}</h3>
                                         <div className="flex items-center gap-2 mt-1">
-                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${getTypeColor(center.type)}`}>
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${getTypeColor(center.type || '')}`}>
                                                 {center.type}
                                             </span>
                                         </div>
@@ -331,7 +331,7 @@ export default function NearbyCarePage() {
 
                                 <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
                                     <MapPin className="h-3.5 w-3.5" />
-                                    {center.distance} • {center.address}
+                                    {center.distance as string} • {center.address}
                                 </div>
 
                                 <div className="flex gap-3">

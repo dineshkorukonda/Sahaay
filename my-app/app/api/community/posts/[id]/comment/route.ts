@@ -33,7 +33,7 @@ export async function POST(
 ) {
     try {
         await connectDB();
-        
+
         const userId = await getUserId(req);
         if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -65,7 +65,7 @@ export async function POST(
         });
 
         // Add comment to post
-        post.comments.push(comment._id);
+        post.comments.push(comment._id as any);
         await post.save();
 
         return NextResponse.json({
