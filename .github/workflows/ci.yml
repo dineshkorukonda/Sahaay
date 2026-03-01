@@ -34,5 +34,14 @@ jobs:
           npm run format
           git diff --exit-code
 
+      - name: Start Next.js Server
+        run: |
+          npm run dev &
+          npx wait-on http://127.0.0.1:3000
+        env:
+          # Fallback env vars if needed during testing in CI
+          GOOGLE_API_KEY: "dummy"
+          NEXT_PUBLIC_GOOGLE_API_KEY: "dummy"
+
       - name: Run Tests
         run: npm run test:bdd
