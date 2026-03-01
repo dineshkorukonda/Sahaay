@@ -54,27 +54,62 @@ export async function GET(req: Request) {
         const profiles = await Profile.find({}).select('userId location pinCode').lean();
         const profileByUser = new Map(profiles.map((p) => [p.userId.toString(), p]));
 
-        const areaCounts: Record<string, { symptomCount: number; waterFailCount?: number }> = {};
+        const areaCounts: Record<string, {
+            symptomCount: number;
+            waterFailCount?: number;
+            trends: Record<string, { symptoms: number; waterFails: number }>;
+        }> = {};
+
+        // Initialize 7-day trend map structure
+        const last7Days = Array.from({ length: 7 }).map((_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            return d.toISOString().split('T')[0];
+        });
 
         for (const rec of records) {
             if (!hasWaterborneSymptom(rec.symptoms)) continue;
             const profile = profileByUser.get(rec.userId?.toString());
             const area = profile?.pinCode || profile?.location?.pinCode || profile?.location?.city || 'unknown';
-            if (!areaCounts[area]) areaCounts[area] = { symptomCount: 0 };
+
+            if (!areaCounts[area]) {
+                const initialTrends: Record<string, { symptoms: number; waterFails: number }> = {};
+                last7Days.forEach(day => initialTrends[day] = { symptoms: 0, waterFails: 0 });
+                areaCounts[area] = { symptomCount: 0, trends: initialTrends };
+            }
+
             areaCounts[area].symptomCount += 1;
+
+            if (rec.analyzedAt) {
+                const dateStr = new Date(rec.analyzedAt).toISOString().split('T')[0];
+                if (areaCounts[area].trends[dateStr]) {
+                    areaCounts[area].trends[dateStr].symptoms += 1;
+                }
+            }
         }
 
         const waterFails = await WaterQualityReport.find({
             reportedAt: { $gte: since },
             bacterialPresence: 'fail',
         })
-            .select('pinCode location')
+            .select('pinCode location reportedAt')
             .lean();
 
         for (const w of waterFails) {
             const area = w.pinCode || w.location?.city || 'unknown';
-            if (!areaCounts[area]) areaCounts[area] = { symptomCount: 0 };
+            if (!areaCounts[area]) {
+                const initialTrends: Record<string, { symptoms: number; waterFails: number }> = {};
+                last7Days.forEach(day => initialTrends[day] = { symptoms: 0, waterFails: 0 });
+                areaCounts[area] = { symptomCount: 0, trends: initialTrends };
+            }
             areaCounts[area].waterFailCount = (areaCounts[area].waterFailCount || 0) + 1;
+
+            if (w.reportedAt) {
+                const dateStr = new Date(w.reportedAt).toISOString().split('T')[0];
+                if (areaCounts[area].trends[dateStr]) {
+                    areaCounts[area].trends[dateStr].waterFails += 1;
+                }
+            }
         }
 
         const areas = Object.entries(areaCounts).map(([area, data]) => {
@@ -82,16 +117,34 @@ export async function GET(req: Request) {
             const count = data.symptomCount + (data.waterFailCount || 0) * 2;
             if (count >= HIGH_RISK_THRESHOLD) risk = 'high';
             else if (count >= MEDIUM_RISK_THRESHOLD) risk = 'medium';
-            return { area, risk, symptomCount: data.symptomCount, waterFailCount: data.waterFailCount || 0 };
+
+            const trendArray = last7Days.map(date => ({
+                date: date.substring(5), // MM-DD
+                symptoms: data.trends[date].symptoms,
+                waterFails: data.trends[date].waterFails
+            }));
+
+            return { area, risk, symptomCount: data.symptomCount, waterFailCount: data.waterFailCount || 0, trends: trendArray };
         });
 
+        // Add dummy trends to mock areas
         const mockAreas = [
             { area: '781001', risk: 'high', symptomCount: 12, waterFailCount: 3 },
             { area: '781006', risk: 'medium', symptomCount: 4, waterFailCount: 1 },
             { area: '781028', risk: 'low', symptomCount: 1, waterFailCount: 0 },
             { area: '781040', risk: 'medium', symptomCount: 3, waterFailCount: 1 },
             { area: '781123', risk: 'high', symptomCount: 8, waterFailCount: 2 },
-        ];
+        ].map(m => {
+            const trendArray = last7Days.map((date, idx) => ({
+                date: date.substring(5),
+                symptoms: Math.max(0, Math.floor((m.symptomCount / 7) + (Math.random() * 2 - 1))),
+                waterFails: Math.max(0, Math.floor((m.waterFailCount / 7) + (Math.random() < 0.3 ? 1 : 0)))
+            }));
+            return {
+                ...m,
+                trends: trendArray
+            };
+        });
 
         const areaMap = new Map();
         mockAreas.forEach(m => areaMap.set(m.area, m));
