@@ -69,6 +69,8 @@ interface CarePlanData {
     }>;
 }
 
+const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
 export default function CarePlanPage() {
     const [carePlan, setCarePlan] = useState<CarePlanData | null>(null);
     const [loading, setLoading] = useState(true);
