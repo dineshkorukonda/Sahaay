@@ -174,13 +174,13 @@ export default function DashboardPage() {
                         <h2 className="text-4xl font-bold tracking-tight text-foreground">Good Morning, {userName}</h2>
                         <div className="flex items-center gap-4">
                             {streak > 0 && (
-                                <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full border border-orange-200">
+                                <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-lg border border-orange-200">
                                     <Flame className="h-5 w-5 text-orange-500" />
                                     <span className="text-orange-700 font-bold">{streak}-day streak</span>
                                 </div>
                             )}
                             {points > 0 && (
-                                <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-200">
+                                <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-200">
                                     <Medal className="h-5 w-5 text-emerald-500" />
                                     <span className="text-emerald-700 font-bold">{points} points</span>
                                 </div>
@@ -221,7 +221,7 @@ export default function DashboardPage() {
                                                     'bg-emerald-50 border-emerald-200 text-emerald-900'
                                                 }`}>
                                                 <span className="text-2xl font-black mb-1 opacity-90">{spot.pincode}</span>
-                                                <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full ${isHigh ? 'bg-red-200 text-red-800' :
+                                                <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-lg ${isHigh ? 'bg-red-200 text-red-800' :
                                                     isMedium ? 'bg-yellow-200 text-yellow-800' :
                                                         'bg-emerald-200 text-emerald-800'
                                                     }`}>
