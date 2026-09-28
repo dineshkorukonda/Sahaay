@@ -36,7 +36,7 @@ export function Sidebar() {
     const pathname = usePathname();
 
     return (
-        <div className="flex h-screen w-64 flex-col bg-sidebar border-r border-sidebar-border shadow-sm fixed left-0 top-0 overflow-y-auto">
+        <div className="flex h-screen w-80 flex-col bg-sidebar border-r border-sidebar-border shadow-sm fixed left-0 top-0 overflow-y-auto">
             <div className="p-6">
                 <div className="flex items-center gap-3 px-2 mb-8">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">

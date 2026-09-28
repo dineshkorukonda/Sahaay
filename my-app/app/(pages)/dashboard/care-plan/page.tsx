@@ -486,7 +486,7 @@ export default function CarePlanPage() {
                                                 <div className="flex items-start justify-between mb-2">
                                                     <h4 className="font-bold text-lg text-blue-900">{activity.name}</h4>
                                                     {activity.intensity && (
-                                                        <span className="px-3 py-1 bg-blue-200 text-blue-800 rounded-full text-xs font-bold uppercase">
+                                                        <span className="px-3 py-1 bg-blue-200 text-blue-800 rounded-lg text-xs font-bold uppercase">
                                                             {activity.intensity}
                                                         </span>
                                                     )}

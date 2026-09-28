@@ -49,7 +49,7 @@ function AreaCard({ areaData }: { areaData: AreaRisk }) {
                 <div className="flex-1 space-y-4">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                         <span className="font-bold text-lg">{areaData.area === "unknown" ? "Unspecified area" : `PIN Code: ${areaData.area}`}</span>
-                        <span className={`px-3 py-1 rounded-full text-sm font-bold shrink-0 ${areaData.risk === "high" ? "bg-red-200 text-red-900" : areaData.risk === "medium" ? "bg-amber-200 text-amber-900" : "bg-green-200 text-green-900"}`}>
+                        <span className={`px-3 py-1 rounded-lg text-sm font-bold shrink-0 ${areaData.risk === "high" ? "bg-red-200 text-red-900" : areaData.risk === "medium" ? "bg-amber-200 text-amber-900" : "bg-green-200 text-green-900"}`}>
                             {areaData.risk.toUpperCase()} RISK
                         </span>
                     </div>
@@ -161,7 +161,7 @@ export default function OutbreakRiskPage() {
                         AI-driven early warning risk monitoring based on aggregated symptom reports and water quality checks.
                     </p>
                     {data?.since && (
-                        <p className="text-sm font-medium text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 inline-block mt-4">
+                        <p className="text-sm font-medium text-amber-700 bg-amber-50 px-3 py-1 rounded-lg border border-amber-200 inline-block mt-4">
                             Monitoring since: {new Date(data.since).toLocaleDateString()}
                         </p>
                     )}

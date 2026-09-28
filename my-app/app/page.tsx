@@ -32,13 +32,10 @@ export default function SanctuaryHome() {
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-500 selection:bg-primary/20">
 
-      {/* Navigation - Floating Circular Pill */}
-      <nav className={cn(
-        "fixed top-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]",
-        scrolled ? "w-[90%] md:w-auto" : "w-[95%] md:w-auto"
-      )}>
+      <nav className="fixed top-0 left-0 right-0 z-50 w-full">
         <div className={cn(
-          "flex items-center justify-between px-3 py-3 rounded-full border border-white/40 shadow-sm backdrop-blur-xl transition-all duration-500 bg-[#F4F1EA]/95" // matching beige bg
+          "flex w-full items-center justify-between px-6 md:px-12 py-4 border-b border-black/5 backdrop-blur-xl transition-all duration-500 bg-[#F4F1EA]/95",
+          scrolled && "shadow-sm"
         )}>
           {/* Logo Section */}
           <div className="flex items-center gap-3 mr-8 ml-2">
@@ -64,7 +61,7 @@ export default function SanctuaryHome() {
           {/* Button Section */}
           <div className="flex items-center ml-4 md:ml-8">
             <Link href="/auth/login">
-              <Button className="rounded-full bg-[#408E5F] text-white hover:bg-[#347A50] px-7 h-11 text-[15px] font-medium shadow-sm transition-all hover:scale-105">
+              <Button className="rounded-lg bg-[#408E5F] text-white hover:bg-[#347A50] px-7 h-11 text-[15px] font-medium shadow-sm transition-all hover:scale-105">
                 Begin Journey
               </Button>
             </Link>
@@ -84,7 +81,7 @@ export default function SanctuaryHome() {
           </div>
 
           <div className="max-w-4xl mx-auto text-center relative z-10 space-y-8">
-            <div className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white border border-primary/10 shadow-sm animate-fade-in hover:shadow-md transition-shadow cursor-default">
+            <div className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white border border-primary/10 shadow-sm animate-fade-in hover:shadow-md transition-shadow cursor-default">
               <Sparkles className="w-4 h-4 text-primary animate-pulse" />
               <span className="text-sm font-medium text-foreground/80">Your safe space for chronic care</span>
             </div>
@@ -101,7 +98,7 @@ export default function SanctuaryHome() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
               <Link href="/auth/login">
-                <Button size="xl" className="h-16 px-12 rounded-full text-lg shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.2)] hover:scale-105 transition-all bg-foreground text-background hover:bg-foreground/90">
+                <Button size="xl" className="h-16 px-12 rounded-lg text-lg shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.2)] hover:scale-105 transition-all bg-foreground text-background hover:bg-foreground/90">
                   Enter Your Sanctuary
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
@@ -114,7 +111,7 @@ export default function SanctuaryHome() {
         <section id="surveillance" className="py-24 px-6 bg-[#F0FDF4] relative overflow-hidden">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
-              <Badge variant="outline" className="mb-6 rounded-full px-4 py-1.5 border-emerald-300 text-emerald-700 bg-emerald-50">
+              <Badge variant="outline" className="mb-6 rounded-lg px-4 py-1.5 border-emerald-300 text-emerald-700 bg-emerald-50">
                 Smart Health Surveillance
               </Badge>
               <h2 className="font-serif text-4xl md:text-5xl mb-6">Detect & Prevent Water-Borne Outbreaks</h2>
@@ -270,7 +267,7 @@ export default function SanctuaryHome() {
         <section id="sanctuary" className="py-32 px-6 bg-[#F4F4F0]">
           <div className="max-w-7xl mx-auto">
             <div className="mb-20">
-              <Badge variant="outline" className="mb-6 rounded-full px-4 py-1 border-primary/20 text-primary bg-primary/5">The Engine</Badge>
+              <Badge variant="outline" className="mb-6 rounded-lg px-4 py-1 border-primary/20 text-primary bg-primary/5">The Engine</Badge>
               <h2 className="font-serif text-5xl md:text-6xl mb-6 leading-tight">Your Health, <br />Organized Beautifully.</h2>
             </div>
 
@@ -289,8 +286,8 @@ export default function SanctuaryHome() {
                     Our core system processes your records, symptoms, and history throughout the day to extract structured insights.
                   </p>
                   <div className="mt-8 flex gap-3">
-                    <Badge variant="secondary" className="rounded-full px-4 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100">AI Analysis</Badge>
-                    <Badge variant="secondary" className="rounded-full px-4 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100">Real-time</Badge>
+                    <Badge variant="secondary" className="rounded-lg px-4 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100">AI Analysis</Badge>
+                    <Badge variant="secondary" className="rounded-lg px-4 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100">Real-time</Badge>
                   </div>
                 </div>
 
@@ -322,7 +319,7 @@ export default function SanctuaryHome() {
                   <div className="mt-auto w-full bg-white/60 backdrop-blur-md rounded-3xl p-6 space-y-4 border border-white/40">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold uppercase text-foreground/50">Status</span>
-                      <div className="flex items-center gap-1.5 text-green-600 text-xs font-bold bg-green-100 px-2 py-1 rounded-full">
+                      <div className="flex items-center gap-1.5 text-green-600 text-xs font-bold bg-green-100 px-2 py-1 rounded-lg">
                         <div className="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse" />
                         SECURE
                       </div>
@@ -361,7 +358,7 @@ export default function SanctuaryHome() {
           <div className="max-w-7xl mx-auto">
             <div className="grid md:grid-cols-2 gap-24 items-center">
               <div className="space-y-10">
-                <Badge variant="outline" className="px-4 py-1.5 rounded-full border-primary/20 text-primary uppercase tracking-widest text-xs">Daily Living</Badge>
+                <Badge variant="outline" className="px-4 py-1.5 rounded-lg border-primary/20 text-primary uppercase tracking-widest text-xs">Daily Living</Badge>
                 <h2 className="font-serif text-6xl leading-[1.1]">
                   Small steps, <br />
                   <span className="text-primary italic">gentle impact.</span>
@@ -394,7 +391,7 @@ export default function SanctuaryHome() {
                   <div className="relative z-10 h-full flex flex-col">
                     <div className="flex items-center justify-between mb-8 px-2">
                       <span className="font-bold text-xl text-foreground/80">Today</span>
-                      <span className="text-sm font-medium text-muted-foreground bg-white px-3 py-1 rounded-full shadow-sm">Oct 24</span>
+                      <span className="text-sm font-medium text-muted-foreground bg-white px-3 py-1 rounded-lg shadow-sm">Oct 24</span>
                     </div>
 
                     <div className="space-y-4 flex-1 overflow-visible">
@@ -448,7 +445,7 @@ export default function SanctuaryHome() {
                   Sahaay builds bridges between experiences.
                 </p>
               </div>
-              <Button variant="secondary" size="xl" className="rounded-full px-8 h-14 bg-white text-black hover:bg-white/90">
+              <Button variant="secondary" size="xl" className="rounded-lg px-8 h-14 bg-white text-black hover:bg-white/90">
                 Join Community
               </Button>
             </div>
