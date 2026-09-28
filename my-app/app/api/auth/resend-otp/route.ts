@@ -1,41 +1,40 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import { User } from '@/lib/models';
+import { users } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { sendOTPEmail } from '@/lib/email';
 
-// Generate 6-digit OTP
 function generateOTP(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 export async function POST(req: Request) {
     try {
-        await connectDB();
+        const db = await connectDB();
         const { email } = await req.json();
 
         if (!email) {
             return NextResponse.json({ error: 'Email is required' }, { status: 400 });
         }
 
-        const user = await User.findOne({ email });
+        const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        // If already verified, don't resend
         if (user.isEmailVerified) {
             return NextResponse.json({ error: 'Email already verified' }, { status: 400 });
         }
 
-        // Generate new OTP
         const otp = generateOTP();
-        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
-        user.otp = otp;
-        user.otpExpires = otpExpires;
-        await user.save();
+        await db.update(users).set({
+            otp,
+            otpExpires,
+            updatedAt: new Date(),
+        }).where(eq(users.id, user.id));
 
-        // Send OTP email
         try {
             await sendOTPEmail(email, otp);
         } catch (emailError) {
@@ -43,9 +42,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Failed to send OTP email' }, { status: 500 });
         }
 
-        return NextResponse.json({ 
-            success: true, 
-            message: 'OTP has been resent to your email' 
+        return NextResponse.json({
+            success: true,
+            message: 'OTP has been resent to your email'
         }, { status: 200 });
 
     } catch (error: unknown) {

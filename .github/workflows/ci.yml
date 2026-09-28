@@ -9,11 +9,25 @@ on:
 jobs:
   lint-and-format:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sahaay
+      GOOGLE_API_KEY: dummy
+      NEXT_PUBLIC_GOOGLE_API_KEY: dummy
+      JWT_SECRET: ci-test-secret
     services:
-      mongodb:
-        image: mongo:5
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sahaay
         ports:
-          - 27017:27017
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sahaay"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: my-app
@@ -39,14 +53,13 @@ jobs:
           npm run format
           git diff --exit-code
 
+      - name: Apply database schema
+        run: npm run db:migrate
+
       - name: Start Next.js Server
         run: |
           npm run dev &
           npx wait-on http://127.0.0.1:3000
-        env:
-          # Fallback env vars if needed during testing in CI
-          GOOGLE_API_KEY: "dummy"
-          NEXT_PUBLIC_GOOGLE_API_KEY: "dummy"
 
       - name: Run Tests
         run: npm run test:bdd

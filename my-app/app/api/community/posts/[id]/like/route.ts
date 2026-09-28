@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { CommunityPost } from '@/lib/models';
+import connectDB, { isUuid } from '@/lib/db';
+import { communityPostLikes, communityPosts } from '@/lib/schema';
+import { and, eq, sql } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -26,46 +27,53 @@ async function getUserId(req: Request): Promise<string | null> {
     }
 }
 
-// Like/Unlike a post
 export async function POST(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        await connectDB();
+        const db = await connectDB();
 
         const userId = await getUserId(req);
-        if (!userId) {
+        if (!isUuid(userId)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const { id } = await params;
-        const post = await CommunityPost.findById(id);
+        if (!isUuid(id)) {
+            return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+        }
 
+        const [post] = await db.select({ id: communityPosts.id }).from(communityPosts).where(eq(communityPosts.id, id)).limit(1);
         if (!post) {
             return NextResponse.json({ error: 'Post not found' }, { status: 404 });
         }
 
-        const isLiked = post.likes.some((likeId: unknown) => String(likeId) === userId);
+        const [existingLike] = await db.select().from(communityPostLikes).where(and(
+            eq(communityPostLikes.postId, id),
+            eq(communityPostLikes.userId, userId),
+        )).limit(1);
 
-        if (isLiked) {
-            // Unlike
-            post.likes = post.likes.filter((likeId: unknown) => String(likeId) !== userId);
+        if (existingLike) {
+            await db.delete(communityPostLikes).where(and(
+                eq(communityPostLikes.postId, id),
+                eq(communityPostLikes.userId, userId),
+            ));
         } else {
-            // Like
-            post.likes.push(userId as any);
+            await db.insert(communityPostLikes).values({ postId: id, userId });
         }
 
-        await post.save();
+        const [countRow] = await db.select({
+            likesCount: sql<number>`count(*)::int`,
+        }).from(communityPostLikes).where(eq(communityPostLikes.postId, id));
 
         return NextResponse.json({
             success: true,
-            liked: !isLiked,
-            likesCount: post.likes.length
+            liked: !existingLike,
+            likesCount: Number(countRow?.likesCount) || 0
         });
     } catch (error: unknown) {
         console.error('Like Post Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
-

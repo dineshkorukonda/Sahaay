@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { Profile } from '@/lib/models';
+import connectDB, { isUuid } from '@/lib/db';
+import { profiles } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -27,8 +28,12 @@ export async function GET(req: Request) {
             userId = payload.userId as string;
         }
 
-        await connectDB();
-        const profile = await Profile.findOne({ userId });
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const db = await connectDB();
+        const [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1);
 
         // Get location from query params or use profile location
         const url = new URL(req.url);

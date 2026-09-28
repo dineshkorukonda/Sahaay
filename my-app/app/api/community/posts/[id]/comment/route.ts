@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { CommunityComment, CommunityPost, User } from '@/lib/models';
+import connectDB, { isUuid } from '@/lib/db';
+import { communityComments, communityPosts, users } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -26,20 +27,29 @@ async function getUserId(req: Request): Promise<string | null> {
     }
 }
 
-// Add a comment to a post
+function getTimeAgo(date: Date): string {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+}
+
 export async function POST(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        await connectDB();
+        const db = await connectDB();
 
         const userId = await getUserId(req);
-        if (!userId) {
+        if (!isUuid(userId)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const user = await User.findById(userId);
+        const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
@@ -51,27 +61,27 @@ export async function POST(
             return NextResponse.json({ error: 'Content is required' }, { status: 400 });
         }
 
-        const post = await CommunityPost.findById(id);
+        if (!isUuid(id)) {
+            return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+        }
+
+        const [post] = await db.select({ id: communityPosts.id }).from(communityPosts).where(eq(communityPosts.id, id)).limit(1);
         if (!post) {
             return NextResponse.json({ error: 'Post not found' }, { status: 404 });
         }
 
-        const comment = await CommunityComment.create({
+        const [comment] = await db.insert(communityComments).values({
             postId: id,
             userId,
             author: user.name || user.email.split('@')[0],
             avatar: user.name ? user.name.substring(0, 2).toUpperCase() : user.email.substring(0, 2).toUpperCase(),
             content
-        });
-
-        // Add comment to post
-        post.comments.push(comment._id as any);
-        await post.save();
+        }).returning();
 
         return NextResponse.json({
             success: true,
             comment: {
-                id: comment._id.toString(),
+                id: comment.id,
                 author: comment.author,
                 avatar: comment.avatar,
                 content: comment.content,
@@ -82,14 +92,4 @@ export async function POST(
         console.error('Add Comment Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
-}
-
-function getTimeAgo(date: Date): string {
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    return date.toLocaleDateString();
 }

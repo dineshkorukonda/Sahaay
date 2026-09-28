@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { HealthStats } from '@/lib/models';
+import connectDB, { isUuid, withId } from '@/lib/db';
+import { healthStats } from '@/lib/schema';
+import { sql } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -10,7 +11,7 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function POST(req: Request) {
     try {
-        await connectDB();
+        const db = await connectDB();
         const token = (await cookies()).get('token')?.value;
         if (!token) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -18,24 +19,30 @@ export async function POST(req: Request) {
 
         const { payload } = await jwtVerify(token, JWT_SECRET);
         const userId = payload.userId as string;
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
         const body = await req.json();
-        const { points, streak } = body;
+        const pointsDelta = Number(body.points) || 0;
+        const streakDelta = Number(body.streak) || 0;
 
-        const healthStats = await HealthStats.findOneAndUpdate(
-            { userId },
-            {
-                $inc: { 
-                    points: points || 0,
-                    streak: streak || 0
-                }
+        const [row] = await db.insert(healthStats).values({
+            userId,
+            points: pointsDelta,
+            streak: streakDelta,
+        }).onConflictDoUpdate({
+            target: healthStats.userId,
+            set: {
+                points: sql`${healthStats.points} + ${pointsDelta}`,
+                streak: sql`${healthStats.streak} + ${streakDelta}`,
+                updatedAt: new Date(),
             },
-            { new: true, upsert: true }
-        );
+        }).returning();
 
         return NextResponse.json({
             success: true,
-            data: healthStats
+            data: withId(row)
         });
     } catch (error: unknown) {
         console.error('Update Health Stats Error:', error);

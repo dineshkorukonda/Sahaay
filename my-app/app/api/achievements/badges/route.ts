@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { Badge } from '@/lib/models';
+import connectDB, { isUuid, withId } from '@/lib/db';
+import { badges } from '@/lib/schema';
+import { desc, eq } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -10,7 +11,7 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function GET(_req: Request) {
     try {
-        await connectDB();
+        const db = await connectDB();
         const token = (await cookies()).get('token')?.value;
         if (!token) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -18,12 +19,15 @@ export async function GET(_req: Request) {
 
         const { payload } = await jwtVerify(token, JWT_SECRET);
         const userId = payload.userId as string;
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
-        const badges = await Badge.find({ userId }).sort({ earnedAt: -1 });
+        const rows = await db.select().from(badges).where(eq(badges.userId, userId)).orderBy(desc(badges.earnedAt));
 
         return NextResponse.json({
             success: true,
-            data: badges
+            data: rows.map(withId)
         });
     } catch (error: unknown) {
         console.error('Badges GET Error:', error);

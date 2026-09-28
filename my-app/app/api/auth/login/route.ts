@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import { User, Profile } from '@/lib/models';
+import { profiles, users } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { cookies } from 'next/headers';
@@ -11,18 +12,16 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function POST(req: Request) {
     try {
-        await connectDB();
+        const db = await connectDB();
         const { email, password } = await req.json();
 
         if (!email || !password) {
             return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
         }
 
-        // Try to find user by email first, then by mobile if email doesn't match
-        let user = await User.findOne({ email });
+        let [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
         if (!user) {
-            // Try mobile as fallback
-            user = await User.findOne({ mobile: email });
+            [user] = await db.select().from(users).where(eq(users.mobile, email)).limit(1);
         }
 
         if (!user) {
@@ -38,36 +37,32 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
-        // Create JWT
-        const token = await new SignJWT({ 
-            userId: user._id.toString(), 
-            email: user.email || user.mobile 
+        const token = await new SignJWT({
+            userId: user.id,
+            email: user.email || user.mobile
         })
             .setProtectedHeader({ alg: 'HS256' })
             .setIssuedAt()
             .setExpirationTime('7d')
             .sign(JWT_SECRET);
 
-        // Set Cookie
         (await cookies()).set('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
             path: '/',
-            maxAge: 60 * 60 * 24 * 7, // 7 days
+            maxAge: 60 * 60 * 24 * 7,
         });
 
-        // Check if user has completed onboarding (has a profile with essential data)
-        const profile = await Profile.findOne({ userId: user._id });
-        const hasCompletedOnboarding = !!profile && 
-            !!profile.dob && 
-            !!profile.location?.pinCode && 
+        const [profile] = await db.select().from(profiles).where(eq(profiles.userId, user.id)).limit(1);
+        const hasCompletedOnboarding = !!profile &&
+            !!profile.dob &&
+            !!profile.location?.pinCode &&
             !!profile.emergencyContact;
 
-        // Add detailed logging for debugging
         console.log('Login Debug:', {
             email: user.email,
-            userId: user._id.toString(),
+            userId: user.id,
             hasProfile: !!profile,
             profileData: profile ? {
                 dob: profile.dob,
@@ -79,17 +74,16 @@ export async function POST(req: Request) {
             hasCompletedOnboarding
         });
 
-        // Check if request is from mobile (has Authorization header or specific header)
-        const isMobileRequest = req.headers.get('x-client-type') === 'mobile' || 
+        const isMobileRequest = req.headers.get('x-client-type') === 'mobile' ||
                                 req.headers.get('authorization') !== null;
 
-        const responseData: Record<string, unknown> = { 
-            success: true, 
-            user: { 
-                id: user._id, 
-                name: user.name, 
+        const responseData: Record<string, unknown> = {
+            success: true,
+            user: {
+                id: user.id,
+                name: user.name,
                 email: user.email,
-                mobile: user.mobile 
+                mobile: user.mobile
             },
             hasCompletedOnboarding,
             debug: {
@@ -102,7 +96,6 @@ export async function POST(req: Request) {
             }
         };
 
-        // Return token in response body for mobile apps
         if (isMobileRequest) {
             responseData.token = token;
         }

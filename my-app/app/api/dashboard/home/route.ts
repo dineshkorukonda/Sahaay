@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { User, Profile, MedicalRecord, HealthStats, CarePlan } from '@/lib/models';
+import connectDB, { isUuid, withId } from '@/lib/db';
+import { healthStats, medicalRecords, profiles, users } from '@/lib/schema';
+import { desc, eq } from 'drizzle-orm';
+import { latestCarePlan } from '@/lib/queries';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -10,9 +12,8 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function GET(req: Request) {
     try {
-        await connectDB();
-        
-        // Support both Bearer token (mobile) and cookie (web)
+        const db = await connectDB();
+
         const authHeader = req.headers.get('authorization');
         let userId: string;
 
@@ -29,25 +30,32 @@ export async function GET(req: Request) {
             userId = payload.userId as string;
         }
 
-        const [user, profile, records, healthStats, carePlan] = await Promise.all([
-            User.findById(userId).select('name mobile email'),
-            Profile.findOne({ userId }),
-            MedicalRecord.find({ userId }).sort({ analyzedAt: -1 }).limit(5),
-            HealthStats.findOne({ userId }),
-            CarePlan.findOne({ userId }).sort({ updatedAt: -1 })
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const [user, profile, records, statsRow, carePlan] = await Promise.all([
+            db.select({
+                id: users.id,
+                name: users.name,
+                mobile: users.mobile,
+                email: users.email,
+            }).from(users).where(eq(users.id, userId)).limit(1).then((rows) => rows[0] ?? null),
+            db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1).then((rows) => rows[0] ?? null),
+            db.select().from(medicalRecords).where(eq(medicalRecords.userId, userId)).orderBy(desc(medicalRecords.analyzedAt)).limit(5),
+            db.select().from(healthStats).where(eq(healthStats.userId, userId)).limit(1).then((rows) => rows[0] ?? null),
+            latestCarePlan(db, userId),
         ]);
 
-        // Use real stats or return null if no data
-        const stats = healthStats ? {
-            streak: healthStats.streak || 0,
-            points: healthStats.points || 0,
+        const stats = statsRow ? {
+            streak: statsRow.streak || 0,
+            points: statsRow.points || 0,
             vitals: {
-                bp: healthStats.vitals?.bp || null,
-                hr: healthStats.vitals?.hr || null
+                bp: statsRow.vitals?.bp || null,
+                hr: statsRow.vitals?.hr || null
             }
         } : null;
 
-        // Get actions from care plan only (no dummy data)
         const actions: Array<{
             id: string;
             title: string;
@@ -86,7 +94,6 @@ export async function GET(req: Request) {
                     }
                 });
             }
-            // Add today's appointments from weekly schedule
             if (carePlan.weeklySchedule) {
                 const today = new Date();
                 const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
@@ -97,7 +104,7 @@ export async function GET(req: Request) {
                             actions.push({
                                 id: `apt-${index}`,
                                 title: apt.title,
-                                type: apt.type,
+                                type: apt.type || 'other',
                                 time: apt.time,
                                 status: apt.status || 'pending'
                             });
@@ -110,9 +117,9 @@ export async function GET(req: Request) {
         return NextResponse.json({
             success: true,
             data: {
-                user,
-                profile,
-                records,
+                user: user ? withId(user) : null,
+                profile: profile ? withId(profile) : null,
+                records: records.map(withId),
                 stats,
                 actions
             }

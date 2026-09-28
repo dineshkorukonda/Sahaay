@@ -18,7 +18,7 @@ if (fs.existsSync(rootEnv)) {
 }
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["pg"],
   env: {
     GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
   },

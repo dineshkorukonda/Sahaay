@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { Profile } from '@/lib/models';
+import connectDB, { isUuid, withId } from '@/lib/db';
+import { profiles, type EmergencyContactJson } from '@/lib/schema';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -10,9 +10,8 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function POST(req: Request) {
     try {
-        await connectDB();
-        
-        // Support both Bearer token (mobile) and cookie (web)
+        const db = await connectDB();
+
         const authHeader = req.headers.get('authorization');
         let userId: string;
 
@@ -29,23 +28,31 @@ export async function POST(req: Request) {
             userId = payload.userId as string;
         }
 
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const data = await req.json();
+        const emergencyContact = data.emergencyContact as EmergencyContactJson | undefined;
 
-        // Update Profile with Health & Emergency info
-        const profile = await Profile.findOneAndUpdate(
-            { userId },
-            {
-                $set: {
-                    bloodGroup: data.bloodGroup,
-                    allergies: data.allergies,
-                    chronicConditions: data.chronicConditions,
-                    emergencyContact: data.emergencyContact
-                }
+        const [profile] = await db.insert(profiles).values({
+            userId,
+            bloodGroup: data.bloodGroup,
+            allergies: data.allergies,
+            chronicConditions: data.chronicConditions,
+            emergencyContact,
+        }).onConflictDoUpdate({
+            target: profiles.userId,
+            set: {
+                bloodGroup: data.bloodGroup,
+                allergies: data.allergies,
+                chronicConditions: data.chronicConditions,
+                emergencyContact,
+                updatedAt: new Date(),
             },
-            { new: true, upsert: true }
-        );
+        }).returning();
 
-        return NextResponse.json({ success: true, profile });
+        return NextResponse.json({ success: true, profile: withId(profile) });
     } catch (error: unknown) {
         console.error('Emergency API Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
