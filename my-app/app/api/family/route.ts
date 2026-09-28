@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { FamilyMember } from '@/lib/models';
+import connectDB, { isUuid, withId } from '@/lib/db';
+import { familyMembers } from '@/lib/schema';
+import { desc, eq } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -8,25 +9,31 @@ const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || 'fallback_secret_key_change_in_prod'
 );
 
+function parseAge(age: unknown): number | null {
+    if (age === '' || age == null) return null;
+    const n = Number(age);
+    return Number.isFinite(n) ? Math.trunc(n) : null;
+}
+
+async function resolveUserId(req: Request): Promise<string | null> {
+    const authHeader = req.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const { payload } = await jwtVerify(token, JWT_SECRET);
+        return payload.userId as string;
+    }
+    const token = (await cookies()).get('token')?.value;
+    if (!token) return null;
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return payload.userId as string;
+}
+
 export async function POST(req: Request) {
     try {
-        await connectDB();
-
-        // Support both Bearer token (mobile) and cookie (web)
-        const authHeader = req.headers.get('authorization');
-        let userId: string;
-
-        if (authHeader?.startsWith('Bearer ')) {
-            const token = authHeader.substring(7);
-            const { payload } = await jwtVerify(token, JWT_SECRET);
-            userId = payload.userId as string;
-        } else {
-            const token = (await cookies()).get('token')?.value;
-            if (!token) {
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-            }
-            const { payload } = await jwtVerify(token, JWT_SECRET);
-            userId = payload.userId as string;
+        const db = await connectDB();
+        const userId = await resolveUserId(req);
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const { name, relationship, age, email, phone, emergencyAccess } = await req.json();
@@ -35,22 +42,20 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Name and relationship are required' }, { status: 400 });
         }
 
-        const familyMember = await FamilyMember.create({
+        const [familyMember] = await db.insert(familyMembers).values({
             userId,
             name,
             relationship,
-            age,
-            email,
-            phone,
-            emergencyAccess: emergencyAccess || false,
-            status: 'STABLE',
-            adherence: 100
-        });
+            age: parseAge(age),
+            email: email || null,
+            phone: phone || null,
+            emergencyAccess: !!emergencyAccess,
+        }).returning();
 
         return NextResponse.json({
             success: true,
             message: "Family member added successfully",
-            familyMember
+            familyMember: withId(familyMember)
         });
 
     } catch (error: unknown) {
@@ -61,31 +66,19 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
     try {
-        await connectDB();
-
-        // Support both Bearer token (mobile) and cookie (web)
-        const authHeader = req.headers.get('authorization');
-        let userId: string;
-
-        if (authHeader?.startsWith('Bearer ')) {
-            const token = authHeader.substring(7);
-            const { payload } = await jwtVerify(token, JWT_SECRET);
-            userId = payload.userId as string;
-        } else {
-            const token = (await cookies()).get('token')?.value;
-            if (!token) {
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-            }
-            const { payload } = await jwtVerify(token, JWT_SECRET);
-            userId = payload.userId as string;
+        const db = await connectDB();
+        const userId = await resolveUserId(req);
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const familyMembers = await FamilyMember.find({ userId }).sort({ createdAt: -1 });
+        const rows = await db.select().from(familyMembers).where(eq(familyMembers.userId, userId)).orderBy(desc(familyMembers.createdAt));
 
         return NextResponse.json({
             success: true,
-            family: familyMembers.map(member => ({
-                id: member._id,
+            family: rows.map(member => ({
+                id: member.id,
+                _id: member.id,
                 name: member.name,
                 relationship: member.relationship,
                 age: member.age,

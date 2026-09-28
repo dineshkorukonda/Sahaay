@@ -1,24 +1,22 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { WaterQualityReport } from '@/lib/models';
+import connectDB, { isUuid, withId } from '@/lib/db';
+import { waterQualityReports, type LocationJson } from '@/lib/schema';
+import { desc, eq } from 'drizzle-orm';
 import { getUserIdFromRequest } from '@/lib/auth';
 
 export async function GET(req: Request) {
     try {
-        await connectDB();
+        const db = await connectDB();
         const url = new URL(req.url);
         const pinCode = url.searchParams.get('pinCode');
         const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 100);
 
-        const filter: Record<string, unknown> = {};
-        if (pinCode) filter.pinCode = pinCode;
+        const query = db.select().from(waterQualityReports).orderBy(desc(waterQualityReports.reportedAt)).limit(limit);
+        const reports = pinCode
+            ? await db.select().from(waterQualityReports).where(eq(waterQualityReports.pinCode, pinCode)).orderBy(desc(waterQualityReports.reportedAt)).limit(limit)
+            : await query;
 
-        const reports = await WaterQualityReport.find(filter)
-            .sort({ reportedAt: -1 })
-            .limit(limit)
-            .lean();
-
-        return NextResponse.json({ success: true, reports });
+        return NextResponse.json({ success: true, reports: reports.map(withId) });
     } catch (error) {
         console.error('Water quality GET error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -27,9 +25,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     try {
-        await connectDB();
+        const db = await connectDB();
         const userId = await getUserIdFromRequest(req);
-        if (!userId) {
+        if (!isUuid(userId)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -50,18 +48,18 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Invalid enum value for source, turbidity, or bacterialPresence' }, { status: 400 });
         }
 
-        const report = await WaterQualityReport.create({
+        const [report] = await db.insert(waterQualityReports).values({
             userId,
-            pinCode: pinCode || undefined,
-            location: location || undefined,
+            pinCode: pinCode || null,
+            location: (location || null) as LocationJson | null,
             source,
             turbidity,
             pH: Number(pH),
             bacterialPresence,
-            notes: notes || undefined
-        });
+            notes: notes || null,
+        }).returning();
 
-        return NextResponse.json({ success: true, report });
+        return NextResponse.json({ success: true, report: withId(report) });
     } catch (error) {
         console.error('Water quality POST error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

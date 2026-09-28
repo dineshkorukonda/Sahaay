@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { CommunityGroup } from '@/lib/models';
+import connectDB, { isUuid } from '@/lib/db';
+import { communityGroupMembers, communityGroups } from '@/lib/schema';
+import { desc, eq, sql } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -26,21 +27,28 @@ async function getUserId(req: Request): Promise<string | null> {
     }
 }
 
-// Get all groups
 export async function GET(_req: Request) {
     try {
-        await connectDB();
+        const db = await connectDB();
 
-        const groups = await CommunityGroup.find()
-            .sort({ members: -1 })
-            .populate('createdBy', 'name')
-            .lean();
-        const formattedGroups = groups.map((group: any) => ({
-            id: group._id.toString(),
+        const groups = await db.select({
+            id: communityGroups.id,
+            name: communityGroups.name,
+            description: communityGroups.description,
+            image: communityGroups.image,
+            tags: communityGroups.tags,
+            members: sql<number>`count(${communityGroupMembers.userId})::int`,
+        }).from(communityGroups)
+            .leftJoin(communityGroupMembers, eq(communityGroups.id, communityGroupMembers.groupId))
+            .groupBy(communityGroups.id)
+            .orderBy(desc(sql`count(${communityGroupMembers.userId})`));
+
+        const formattedGroups = groups.map((group) => ({
+            id: group.id,
             name: group.name,
             description: group.description,
             image: group.image || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400',
-            members: group.members?.length || 0,
+            members: Number(group.members) || 0,
             tags: group.tags || []
         }));
 
@@ -54,60 +62,62 @@ export async function GET(_req: Request) {
     }
 }
 
-// Create a group or join a group
 export async function POST(req: Request) {
     try {
-        await connectDB();
+        const db = await connectDB();
 
         const userId = await getUserId(req);
-        if (!userId) {
+        if (!isUuid(userId)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const { groupId, name, description, image, tags } = await req.json();
 
-        // If groupId provided, join existing group
         if (groupId) {
-            const group = await CommunityGroup.findById(groupId);
+            if (!isUuid(groupId)) {
+                return NextResponse.json({ error: 'Group not found' }, { status: 404 });
+            }
+
+            const [group] = await db.select().from(communityGroups).where(eq(communityGroups.id, groupId)).limit(1);
             if (!group) {
                 return NextResponse.json({ error: 'Group not found' }, { status: 404 });
             }
 
-            const isMember = group.members.some((memberId: unknown) => String(memberId) === userId);
-            if (!isMember) {
-                group.members.push(userId as any);
-                await group.save();
-            }
+            await db.insert(communityGroupMembers).values({ groupId, userId }).onConflictDoNothing();
+
+            const [countRow] = await db.select({
+                members: sql<number>`count(*)::int`,
+            }).from(communityGroupMembers).where(eq(communityGroupMembers.groupId, groupId));
 
             return NextResponse.json({
                 success: true,
                 message: 'Joined group successfully',
                 group: {
-                    id: group._id.toString(),
+                    id: group.id,
                     name: group.name,
-                    members: group.members.length
+                    members: Number(countRow?.members) || 0
                 }
             });
         }
 
-        // Create new group
         if (!name || !description) {
             return NextResponse.json({ error: 'Name and description are required' }, { status: 400 });
         }
 
-        const group = await CommunityGroup.create({
+        const [group] = await db.insert(communityGroups).values({
             name,
             description,
             image,
             tags: tags || [],
-            members: [userId],
-            createdBy: userId
-        });
+            createdBy: userId,
+        }).returning();
+
+        await db.insert(communityGroupMembers).values({ groupId: group.id, userId });
 
         return NextResponse.json({
             success: true,
             group: {
-                id: group._id.toString(),
+                id: group.id,
                 name: group.name,
                 description: group.description,
                 image: group.image,

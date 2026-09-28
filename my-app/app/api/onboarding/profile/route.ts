@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { Profile } from '@/lib/models';
+import connectDB, { isUuid, withId } from '@/lib/db';
+import { profiles, type LocationJson } from '@/lib/schema';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -10,9 +10,8 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function POST(req: Request) {
     try {
-        await connectDB();
-        
-        // Support both Bearer token (mobile) and cookie (web)
+        const db = await connectDB();
+
         const authHeader = req.headers.get('authorization');
         let userId: string;
 
@@ -29,18 +28,25 @@ export async function POST(req: Request) {
             userId = payload.userId as string;
         }
 
-        const data = await req.json();
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
-        // Build update object dynamically
-        const updateData: Record<string, unknown> = {};
-        
-        if (data.dob !== undefined) updateData.dob = data.dob;
-        if (data.gender !== undefined) updateData.gender = data.gender;
-        if (data.pinCode !== undefined) updateData.pinCode = data.pinCode;
-        
-        // Handle location data
+        const data = await req.json();
+        const values: {
+            userId: string;
+            dob?: string;
+            gender?: string;
+            pinCode?: string;
+            location?: LocationJson;
+        } = { userId };
+
+        if (data.dob !== undefined) values.dob = data.dob;
+        if (data.gender !== undefined) values.gender = data.gender;
+        if (data.pinCode !== undefined) values.pinCode = data.pinCode;
+
         if (data.location) {
-            updateData.location = {
+            values.location = {
                 pinCode: data.location.pinCode || data.pinCode,
                 city: data.location.city,
                 state: data.location.state,
@@ -49,21 +55,19 @@ export async function POST(req: Request) {
             };
         }
 
-        // Upsert Profile
-        const profile = await Profile.findOneAndUpdate(
-            { userId },
-            { $set: updateData },
-            { new: true, upsert: true }
-        );
+        const [profile] = await db.insert(profiles).values(values).onConflictDoUpdate({
+            target: profiles.userId,
+            set: { ...values, updatedAt: new Date() },
+        }).returning();
 
         console.log('Profile updated:', {
             userId,
             hasLocation: !!profile?.location?.pinCode,
             locationPinCode: profile?.location?.pinCode,
-            updateData
+            updateData: values
         });
 
-        return NextResponse.json({ success: true, profile });
+        return NextResponse.json({ success: true, profile: withId(profile) });
     } catch (error: unknown) {
         console.error('Profile API Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

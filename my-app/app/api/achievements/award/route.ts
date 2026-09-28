@@ -1,8 +1,9 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { Badge } from '@/lib/models';
+import connectDB, { isUuid, withId } from '@/lib/db';
+import { badges } from '@/lib/schema';
+import { and, eq } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -12,7 +13,7 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function POST(req: Request) {
     try {
-        await connectDB();
+        const db = await connectDB();
         const token = (await cookies()).get('token')?.value;
         if (!token) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -20,27 +21,28 @@ export async function POST(req: Request) {
 
         const { payload } = await jwtVerify(token, JWT_SECRET);
         const userId = payload.userId as string;
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
         const body = await req.json();
         const { badgeType, badgeName, description, icon, metadata } = body;
 
-        // Check if badge already exists
-        const existingBadge = await Badge.findOne({
-            userId,
-            badgeType,
-            badgeName
-        });
+        const [existingBadge] = await db.select().from(badges).where(and(
+            eq(badges.userId, userId),
+            eq(badges.badgeType, badgeType),
+            eq(badges.badgeName, badgeName),
+        )).limit(1);
 
         if (existingBadge) {
             return NextResponse.json({
                 success: true,
-                data: existingBadge,
+                data: withId(existingBadge),
                 message: 'Badge already earned'
             });
         }
 
-        // Create new badge
-        const badge = await Badge.create({
+        const [badge] = await db.insert(badges).values({
             userId,
             badgeType,
             badgeName,
@@ -48,11 +50,11 @@ export async function POST(req: Request) {
             icon,
             metadata,
             earnedAt: new Date()
-        });
+        }).returning();
 
         return NextResponse.json({
             success: true,
-            data: badge,
+            data: withId(badge),
             message: 'Badge awarded successfully'
         });
     } catch (error: unknown) {

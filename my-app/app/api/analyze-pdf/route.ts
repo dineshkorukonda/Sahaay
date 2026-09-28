@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import connectDB from '@/lib/db';
-import { MedicalRecord } from '@/lib/models';
+import connectDB, { isUuid, withId } from '@/lib/db';
+import { medicalRecords } from '@/lib/schema';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -89,8 +89,11 @@ export async function POST(req: Request) {
         const responseText = result.response.text();
         const parsedResult = JSON.parse(responseText);
 
-        // Save to DB with file information
-        await connectDB();
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const db = await connectDB();
 
         // Store file as base64 in MongoDB (for hackathon - in production use cloud storage)
         let fileUrl: string | undefined;
@@ -111,7 +114,7 @@ export async function POST(req: Request) {
             }
         }
 
-        const record = await MedicalRecord.create({
+        const [record] = await db.insert(medicalRecords).values({
             userId,
             diseaseName: parsedResult.diseaseName,
             medicines: parsedResult.medicines || [],
@@ -129,12 +132,12 @@ export async function POST(req: Request) {
             diagnosis: parsedResult.diagnosis,
             symptoms: parsedResult.symptoms || [],
             recommendations: parsedResult.recommendations || []
-        });
+        }).returning();
 
         return NextResponse.json({
             success: true,
             data: {
-                ...record.toObject(),
+                ...withId(record),
                 diseaseName: parsedResult.diseaseName,
                 medicines: parsedResult.medicines || []
             }

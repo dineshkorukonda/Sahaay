@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { MedicalRecord, Profile, WaterQualityReport } from '@/lib/models';
+import { medicalRecords, profiles, waterQualityReports } from '@/lib/schema';
 import connectDB from '@/lib/db';
+import { and, eq, gte } from 'drizzle-orm';
 
 const WATERBORNE_SYMPTOM_KEYWORDS = ['diarrhea', 'diarrhoea', 'vomiting', 'fever', 'typhoid', 'cholera', 'jaundice', 'dysentery', 'stomach', 'dehydration'];
 const DAYS_LOOKBACK = 14;
@@ -15,35 +16,43 @@ function hasWaterborneSymptom(symptoms: string[] | undefined): boolean {
 
 export async function GET() {
     try {
-        await connectDB();
+        const db = await connectDB();
 
         const since = new Date();
         since.setDate(since.getDate() - DAYS_LOOKBACK);
 
-        const records = await MedicalRecord.find({ analyzedAt: { $gte: since } })
-            .select('userId symptoms analyzedAt')
-            .lean();
-        const profiles = await Profile.find({}).select('userId location pinCode').lean();
-        const profileByUser = new Map(profiles.map((p) => [p.userId.toString(), p]));
+        const records = await db.select({
+            userId: medicalRecords.userId,
+            symptoms: medicalRecords.symptoms,
+            analyzedAt: medicalRecords.analyzedAt,
+        }).from(medicalRecords).where(gte(medicalRecords.analyzedAt, since));
+        const profileRows = await db.select({
+            userId: profiles.userId,
+            location: profiles.location,
+            pinCode: profiles.pinCode,
+        }).from(profiles);
+        const profileByUser = new Map(profileRows.map((p) => [p.userId, p]));
 
         const areaCounts: Record<string, { symptomCount: number; waterFailCount?: number }> = {};
 
         // Aggregate symptoms by PIN code
         for (const rec of records) {
             if (!hasWaterborneSymptom(rec.symptoms)) continue;
-            const profile = profileByUser.get(rec.userId?.toString());
+            const profile = profileByUser.get(rec.userId);
             const area = profile?.pinCode || profile?.location?.pinCode || profile?.location?.city || 'unknown';
             if (!areaCounts[area]) areaCounts[area] = { symptomCount: 0 };
             areaCounts[area].symptomCount += 1;
         }
 
         // Aggregate water quality failures by PIN code
-        const waterFails = await WaterQualityReport.find({
-            reportedAt: { $gte: since },
-            bacterialPresence: 'fail',
-        })
-            .select('pinCode location reportedAt')
-            .lean();
+        const waterFails = await db.select({
+            pinCode: waterQualityReports.pinCode,
+            location: waterQualityReports.location,
+            reportedAt: waterQualityReports.reportedAt,
+        }).from(waterQualityReports).where(and(
+            gte(waterQualityReports.reportedAt, since),
+            eq(waterQualityReports.bacterialPresence, 'fail'),
+        ));
 
         for (const w of waterFails) {
             const area = w.pinCode || w.location?.city || 'unknown';

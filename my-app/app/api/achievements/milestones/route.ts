@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { CarePlan, HealthStats } from '@/lib/models';
+import connectDB, { isUuid } from '@/lib/db';
+import { healthStats } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
+import { latestCarePlan } from '@/lib/queries';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -10,7 +12,7 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function GET(_req: Request) {
     try {
-        await connectDB();
+        const db = await connectDB();
         const token = (await cookies()).get('token')?.value;
         if (!token) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -18,15 +20,17 @@ export async function GET(_req: Request) {
 
         const { payload } = await jwtVerify(token, JWT_SECRET);
         const userId = payload.userId as string;
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
-        const [carePlan, healthStats] = await Promise.all([
-            CarePlan.findOne({ userId }),
-            HealthStats.findOne({ userId })
+        const [carePlan, statsRow] = await Promise.all([
+            latestCarePlan(db, userId),
+            db.select().from(healthStats).where(eq(healthStats.userId, userId)).limit(1).then((rows) => rows[0] ?? null),
         ]);
 
         const milestones = [];
 
-        // Task completion milestone
         if (carePlan && carePlan.dailyTasks) {
             const completedTasks = carePlan.dailyTasks.filter(t => t.status === 'completed').length;
             const totalTasks = carePlan.dailyTasks.length;
@@ -40,29 +44,26 @@ export async function GET(_req: Request) {
             });
         }
 
-        // Streak milestone
-        if (healthStats) {
+        if (statsRow) {
             milestones.push({
                 title: 'Consistency Champion',
                 description: 'Maintain your health streak',
-                progress: healthStats.streak || 0,
+                progress: statsRow.streak || 0,
                 target: 30,
                 icon: '🔥',
                 category: 'streak'
             });
 
-            // Points milestone
             milestones.push({
                 title: 'Health Points Collector',
                 description: 'Earn health points through activities',
-                progress: healthStats.points || 0,
+                progress: statsRow.points || 0,
                 target: 1000,
                 icon: '⭐',
                 category: 'points'
             });
         }
 
-        // Medication adherence milestone
         if (carePlan && carePlan.medications) {
             const completedMeds = carePlan.medications.filter(m => m.status === 'completed').length;
             const totalMeds = carePlan.medications.length;
@@ -71,7 +72,7 @@ export async function GET(_req: Request) {
                     title: 'Medication Adherence',
                     description: 'Take medications as prescribed',
                     progress: completedMeds,
-                    target: totalMeds * 7, // 7 days of adherence
+                    target: totalMeds * 7,
                     icon: '💊',
                     category: 'medication'
                 });

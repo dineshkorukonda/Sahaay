@@ -41,7 +41,7 @@ This project addresses the development of a **Smart Health Surveillance and Earl
 -   **Framework**: Next.js 16 (App Router)
 -   **Language**: TypeScript
 -   **Styling**: Tailwind CSS
--   **Database**: MongoDB (Mongoose)
+-   **Database**: Neon Postgres (Drizzle ORM)
 -   **AI Integration**: Google Gemini (via `google-generative-ai` SDK)
 -   **Maps**: Google Maps JavaScript API
 -   **PDF Processing**: `pdf-parse`, `jspdf`
@@ -50,33 +50,33 @@ This project addresses the development of a **Smart Health Surveillance and Earl
 
 Before you begin, ensure you have the following installed:
 -   [Node.js](https://nodejs.org/) (v18 or higher recommended)
--   [MongoDB](https://www.mongodb.com/) (local or Atlas)
+-   A [Neon](https://neon.tech) Postgres database
 
 ## Local development (recommended)
 
-Run the app against a **local MongoDB** to avoid Atlas DNS/network issues (`ENOTFOUND _mongodb._tcp.cluster0.mongodb.net`).
+Run the app against a **Neon Postgres** database.
 
-1.  **Install and start MongoDB locally**
-    - **macOS (Homebrew):** `brew tap mongodb/brew && brew install mongodb-community`, then `brew services start mongodb-community`
-    - **Docker:** `docker run -d -p 27017:27017 --name mongodb mongo:latest`
-    - Or use [MongoDB Community Server](https://www.mongodb.com/try/download/community) for your OS.
+1.  **Create a Neon project**
+    - Sign in at [neon.tech](https://neon.tech) and create a project.
+    - Copy the connection string from the Neon dashboard.
 
 2.  **Use env from the app directory**
     Next.js loads `.env` from the **`my-app`** directory (where `next dev` runs). So you need a `.env` inside `my-app`:
     - Copy the example: `cp my-app/.env.example my-app/.env`
-    - If your `.env` is at the repo root, copy it to `my-app/.env` or create `my-app/.env` with at least `DB_URL` and `JWT_SECRET`.
+    - If your `.env` is at the repo root, copy it to `my-app/.env` or create `my-app/.env` with at least `DATABASE_URL` and `JWT_SECRET`.
 
-3.  **Set the database URL for local MongoDB**
+3.  **Set the database URL**
     In `my-app/.env` set:
     ```env
-    DB_URL=mongodb://localhost:27017/sahaay
+    DATABASE_URL=postgresql://user:password@ep-example.region.aws.neon.tech/neondb?sslmode=require
     JWT_SECRET=your_secure_jwt_secret_key
     ```
     Add `GOOGLE_API_KEY` and SMTP vars only if you need AI reports or email OTP.
 
-4.  **Run the dev server from `my-app`**
+4.  **Apply migrations and run the dev server from `my-app`**
     ```bash
     cd my-app
+    npm run db:migrate
     npm run dev
     ```
     Open **http://localhost:3000** (or the port shown if 3000 is in use).
@@ -96,12 +96,12 @@ Run the app against a **local MongoDB** to avoid Atlas DNS/network issues (`ENOT
     ```
 
 3.  **Environment Configuration**
-    Create a `.env` file in the **`my-app`** directory (see `my-app/.env.example`). For local MongoDB use:
+    Create a `.env` file in the **`my-app`** directory (see `my-app/.env.example`). Set your Neon connection string:
     ```env
-    DB_URL=mongodb://localhost:27017/sahaay
+    DATABASE_URL=postgresql://user:password@ep-example.region.aws.neon.tech/neondb?sslmode=require
     JWT_SECRET=your_secure_jwt_secret_key
     ```
-    For Atlas use `DB_URL=mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/sahaay`. Optionally set `GOOGLE_API_KEY`, `NEXT_PUBLIC_GOOGLE_API_KEY`, and SMTP variables for AI and email.
+    Optionally set `GOOGLE_API_KEY`, `NEXT_PUBLIC_GOOGLE_API_KEY`, and SMTP variables for AI and email. Then apply the schema with `npm run db:migrate`.
 
 4.  **Run the Development Server**
     ```bash

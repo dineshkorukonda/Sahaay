@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { MedicalRecord, Badge } from '@/lib/models';
+import connectDB, { isUuid } from '@/lib/db';
+import { badges, medicalRecords } from '@/lib/schema';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -27,12 +28,13 @@ export async function GET(req: Request) {
             userId = payload.userId as string;
         }
 
-        await connectDB();
-        
-        // Fetch all medical records for the user
-        const records = await MedicalRecord.find({ userId })
-            .sort({ analyzedAt: -1 })
-            .limit(50);
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const db = await connectDB();
+
+        const records = await db.select().from(medicalRecords).where(eq(medicalRecords.userId, userId)).orderBy(desc(medicalRecords.analyzedAt)).limit(50);
 
         // Calculate stats
         const totalReports = records.length;
@@ -53,7 +55,7 @@ export async function GET(req: Request) {
         const activeMedications = allMedicines.size;
 
         const recentReports = records.slice(0, 5).map(r => ({
-            id: r._id.toString(),
+            id: r.id,
             name: r.diseaseName || r.diagnosis || 'Medical Report',
             fileName: r.fileName || 'Unknown',
             fileType: r.fileType || 'application/pdf',
@@ -68,7 +70,7 @@ export async function GET(req: Request) {
         const clinicalConditions = records
             .filter(r => r.diseaseName || r.diagnosis)
             .map(r => ({
-                id: r._id.toString(),
+                id: r.id,
                 conditionName: r.diseaseName || r.diagnosis || 'Unknown Condition',
                 icd10Code: 'N/A', // Would need to be extracted or mapped
                 severity: r.diseaseName?.toLowerCase().includes('chronic') || 
@@ -106,14 +108,14 @@ export async function GET(req: Request) {
         if (uniqueProblems.size > 0) {
             // Award badge for managing health problems
             for (const problem of uniqueProblems) {
-                const existingBadge = await Badge.findOne({
-                    userId,
-                    badgeType: 'problem_management',
-                    'metadata.problem': problem
-                });
+                const [existingBadge] = await db.select({ id: badges.id }).from(badges).where(and(
+                    eq(badges.userId, userId),
+                    eq(badges.badgeType, 'problem_management'),
+                    sql`${badges.metadata}->>'problem' = ${problem}`,
+                )).limit(1);
 
                 if (!existingBadge) {
-                    await Badge.create({
+                    await db.insert(badges).values({
                         userId,
                         badgeType: 'problem_management',
                         badgeName: 'Health Manager',

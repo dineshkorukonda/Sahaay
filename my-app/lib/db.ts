@@ -1,65 +1,42 @@
-import mongoose from 'mongoose';
+import { neon } from '@neondatabase/serverless';
+import { drizzle, type NeonHttpDatabase } from 'drizzle-orm/neon-http';
+import * as schema from './schema';
 
-// Support both B_URL and DB_URL for flexibility. In development, fall back to local MongoDB if unset.
-// Set USE_LOCAL_MONGO=1 in .env to force local MongoDB (avoids Atlas DNS/network issues).
-const LOCAL_MONGO = 'mongodb://localhost:27017/sahaay';
-const MONGODB_URI =
-    process.env.USE_LOCAL_MONGO === '1' || process.env.USE_LOCAL_MONGO === 'true'
-        ? LOCAL_MONGO
-        : process.env.B_URL ||
-          process.env.DB_URL ||
-          (process.env.NODE_ENV !== 'production' ? LOCAL_MONGO : undefined);
+export type Database = NeonHttpDatabase<typeof schema>;
 
-if (!MONGODB_URI) {
-    throw new Error('Please define the B_URL or DB_URL environment variable inside .env');
-}
+const globalForDb = globalThis as unknown as { sahaayDb?: Database };
 
-/**
- * Global is used here to maintain a cached connection across hot reloads
- * in development. This prevents connections growing exponentially
- * during API Route usage.
- */
-interface MongooseCache {
-    conn: typeof mongoose | null;
-    promise: Promise<typeof mongoose> | null;
-}
-
-
-// Declare global mongoose correctly
-declare global {
-    var mongoose: MongooseCache | undefined;
-}
-
-const cached: MongooseCache = global.mongoose || { conn: null, promise: null };
-
-if (!global.mongoose) {
-    global.mongoose = cached;
-}
-
-async function connectDB() {
-    if (cached.conn) {
-        return cached.conn;
+function databaseUrl() {
+    const url = process.env.DATABASE_URL;
+    if (!url) {
+        throw new Error('Please define the DATABASE_URL environment variable inside .env');
     }
-
-    if (!cached.promise) {
-        const opts = {
-            bufferCommands: false,
-        };
-
-        cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongooseInstance) => {
-            console.log('MongoDB Connected');
-            return mongooseInstance;
-        });
-    }
-
-    try {
-        cached.conn = await cached.promise;
-    } catch (e) {
-        cached.promise = null;
-        throw e;
-    }
-
-    return cached.conn;
+    return url;
 }
 
-export default connectDB;
+export function getDb(): Database {
+    if (!globalForDb.sahaayDb) {
+        const sql = neon(databaseUrl());
+        globalForDb.sahaayDb = drizzle(sql, { schema });
+    }
+    return globalForDb.sahaayDb;
+}
+
+export default async function connectDB() {
+    return getDb();
+}
+
+export function withId<T extends { id: string }>(row: T): T & { _id: string } {
+    return { ...row, _id: row.id };
+}
+
+export function isUuid(value: string | null | undefined): value is string {
+    return !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+export function isUniqueViolation(error: unknown): boolean {
+    if (error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === '23505') {
+        return true;
+    }
+    return error instanceof Error && /duplicate key|unique constraint/i.test(error.message);
+}

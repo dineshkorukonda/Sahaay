@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import connectDB from '@/lib/db';
-import { MedicalRecord, Profile, WaterQualityReport, Alert } from '@/lib/models';
+import { medicalRecords, profiles, waterQualityReports, alerts } from '@/lib/schema';
+import { and, eq, gte } from 'drizzle-orm';
 
 const WATERBORNE_SYMPTOM_KEYWORDS = ['diarrhea', 'diarrhoea', 'vomiting', 'fever', 'typhoid', 'cholera', 'jaundice', 'dysentery', 'stomach', 'dehydration'];
 const DAYS_LOOKBACK = 14;
@@ -44,15 +45,21 @@ export async function GET(req: Request) {
         const url = new URL(req.url);
         const pinCode = url.searchParams.get('pinCode');
 
-        await connectDB();
+        const db = await connectDB();
         const since = new Date();
         since.setDate(since.getDate() - DAYS_LOOKBACK);
 
-        const records = await MedicalRecord.find({ analyzedAt: { $gte: since } })
-            .select('userId symptoms analyzedAt')
-            .lean();
-        const profiles = await Profile.find({}).select('userId location pinCode').lean();
-        const profileByUser = new Map(profiles.map((p) => [p.userId.toString(), p]));
+        const records = await db.select({
+            userId: medicalRecords.userId,
+            symptoms: medicalRecords.symptoms,
+            analyzedAt: medicalRecords.analyzedAt,
+        }).from(medicalRecords).where(gte(medicalRecords.analyzedAt, since));
+        const profileRows = await db.select({
+            userId: profiles.userId,
+            location: profiles.location,
+            pinCode: profiles.pinCode,
+        }).from(profiles);
+        const profileByUser = new Map(profileRows.map((p) => [p.userId, p]));
 
         const areaCounts: Record<string, {
             symptomCount: number;
@@ -69,7 +76,7 @@ export async function GET(req: Request) {
 
         for (const rec of records) {
             if (!hasWaterborneSymptom(rec.symptoms)) continue;
-            const profile = profileByUser.get(rec.userId?.toString());
+            const profile = profileByUser.get(rec.userId);
             const area = profile?.pinCode || profile?.location?.pinCode || profile?.location?.city || 'unknown';
 
             if (!areaCounts[area]) {
@@ -88,12 +95,14 @@ export async function GET(req: Request) {
             }
         }
 
-        const waterFails = await WaterQualityReport.find({
-            reportedAt: { $gte: since },
-            bacterialPresence: 'fail',
-        })
-            .select('pinCode location reportedAt')
-            .lean();
+        const waterFails = await db.select({
+            pinCode: waterQualityReports.pinCode,
+            location: waterQualityReports.location,
+            reportedAt: waterQualityReports.reportedAt,
+        }).from(waterQualityReports).where(and(
+            gte(waterQualityReports.reportedAt, since),
+            eq(waterQualityReports.bacterialPresence, 'fail'),
+        ));
 
         for (const w of waterFails) {
             const area = w.pinCode || w.location?.city || 'unknown';
@@ -135,7 +144,7 @@ export async function GET(req: Request) {
             { area: '781040', risk: 'medium', symptomCount: 3, waterFailCount: 1 },
             { area: '781123', risk: 'high', symptomCount: 8, waterFailCount: 2 },
         ].map(m => {
-            const trendArray = last7Days.map((date, idx) => ({
+            const trendArray = last7Days.map((date) => ({
                 date: date.substring(5),
                 symptoms: Math.max(0, Math.floor((m.symptomCount / 7) + (Math.random() * 2 - 1))),
                 waterFails: Math.max(0, Math.floor((m.waterFailCount / 7) + (Math.random() < 0.3 ? 1 : 0)))
@@ -160,13 +169,13 @@ export async function GET(req: Request) {
         for (const a of mergedAreas) {
             if (a.risk === 'high' && a.area && a.area !== 'unknown') {
                 // Check if an ACTIVE alert already exists for this PIN code
-                const existingAlert = await Alert.findOne({
-                    pincode: a.area,
-                    status: 'ACTIVE'
-                });
+                const [existingAlert] = await db.select({ id: alerts.id }).from(alerts).where(and(
+                    eq(alerts.pincode, a.area),
+                    eq(alerts.status, 'ACTIVE'),
+                )).limit(1);
 
                 if (!existingAlert) {
-                    await Alert.create({
+                    await db.insert(alerts).values({
                         pincode: a.area,
                         riskLevel: 'HIGH',
                         message: `Automated Alert: High risk of waterborne disease outbreak detected in PIN ${a.area}. Medical records show a cluster of related symptoms, exacerbated by local water quality failures.`,

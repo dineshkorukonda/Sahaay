@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { User, Profile } from '@/lib/models';
+import connectDB, { isUuid, isUniqueViolation, withId } from '@/lib/db';
+import { profiles, users } from '@/lib/schema';
+import { and, eq, ne } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -8,37 +9,42 @@ const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || 'fallback_secret_key_change_in_prod'
 );
 
+async function resolveUserId(req: Request): Promise<string | null> {
+    const authHeader = req.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const { payload } = await jwtVerify(token, JWT_SECRET);
+        return payload.userId as string;
+    }
+    const token = (await cookies()).get('token')?.value;
+    if (!token) return null;
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return payload.userId as string;
+}
+
 export async function GET(req: Request) {
     try {
-        await connectDB();
-        
-        // Support both Bearer token (mobile) and cookie (web)
-        const authHeader = req.headers.get('authorization');
-        let userId: string;
-
-        if (authHeader?.startsWith('Bearer ')) {
-            const token = authHeader.substring(7);
-            const { payload } = await jwtVerify(token, JWT_SECRET);
-            userId = payload.userId as string;
-        } else {
-            const token = (await cookies()).get('token')?.value;
-            if (!token) {
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-            }
-            const { payload } = await jwtVerify(token, JWT_SECRET);
-            userId = payload.userId as string;
+        const db = await connectDB();
+        const userId = await resolveUserId(req);
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const [user, profile] = await Promise.all([
-            User.findById(userId).select('name email mobile'),
-            Profile.findOne({ userId })
+            db.select({
+                id: users.id,
+                name: users.name,
+                email: users.email,
+                mobile: users.mobile,
+            }).from(users).where(eq(users.id, userId)).limit(1).then((rows) => rows[0]),
+            db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1).then((rows) => rows[0]),
         ]);
 
         return NextResponse.json({
             success: true,
             data: {
-                user,
-                profile
+                user: user ? withId(user) : null,
+                profile: profile ? withId(profile) : null
             }
         });
     } catch (error: unknown) {
@@ -49,32 +55,17 @@ export async function GET(req: Request) {
 
 export async function PUT(req: Request) {
     try {
-        await connectDB();
-        
-        // Support both Bearer token (mobile) and cookie (web)
-        const authHeader = req.headers.get('authorization');
-        let userId: string;
-
-        if (authHeader?.startsWith('Bearer ')) {
-            const token = authHeader.substring(7);
-            const { payload } = await jwtVerify(token, JWT_SECRET);
-            userId = payload.userId as string;
-        } else {
-            const token = (await cookies()).get('token')?.value;
-            if (!token) {
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-            }
-            const { payload } = await jwtVerify(token, JWT_SECRET);
-            userId = payload.userId as string;
+        const db = await connectDB();
+        const userId = await resolveUserId(req);
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const data = await req.json();
-        const updateData: Record<string, unknown> = {};
+        const updateData: { email?: string; mobile?: string | null } = {};
 
-        // Only allow updating email, mobile, dob, and language
         if (data.email !== undefined) {
-            // Check if email already exists for another user
-            const existingUser = await User.findOne({ email: data.email, _id: { $ne: userId } });
+            const [existingUser] = await db.select({ id: users.id }).from(users).where(and(eq(users.email, data.email), ne(users.id, userId))).limit(1);
             if (existingUser) {
                 return NextResponse.json({ error: 'Email already in use' }, { status: 400 });
             }
@@ -82,34 +73,26 @@ export async function PUT(req: Request) {
         }
 
         if (data.mobile !== undefined) {
-            // Check if mobile already exists for another user
-            const existingUser = await User.findOne({ mobile: data.mobile, _id: { $ne: userId } });
+            const [existingUser] = await db.select({ id: users.id }).from(users).where(and(eq(users.mobile, data.mobile), ne(users.id, userId))).limit(1);
             if (existingUser) {
                 return NextResponse.json({ error: 'Mobile number already in use' }, { status: 400 });
             }
-            updateData.mobile = data.mobile;
+            updateData.mobile = data.mobile || null;
         }
 
-        // Update user
         if (Object.keys(updateData).length > 0) {
-            await User.findByIdAndUpdate(userId, { $set: updateData });
+            await db.update(users).set({ ...updateData, updatedAt: new Date() }).where(eq(users.id, userId));
         }
 
-        // Update profile
-        const profileUpdate: Record<string, unknown> = {};
-        if (data.dob !== undefined) {
-            profileUpdate.dob = data.dob;
-        }
-        if (data.language !== undefined) {
-            profileUpdate.language = data.language;
-        }
+        const profileUpdate: { dob?: string; language?: string } = {};
+        if (data.dob !== undefined) profileUpdate.dob = data.dob;
+        if (data.language !== undefined) profileUpdate.language = data.language;
 
         if (Object.keys(profileUpdate).length > 0) {
-            await Profile.findOneAndUpdate(
-                { userId },
-                { $set: profileUpdate },
-                { upsert: true, new: true }
-            );
+            await db.insert(profiles).values({ userId, ...profileUpdate }).onConflictDoUpdate({
+                target: profiles.userId,
+                set: { ...profileUpdate, updatedAt: new Date() },
+            });
         }
 
         return NextResponse.json({
@@ -118,6 +101,9 @@ export async function PUT(req: Request) {
         });
     } catch (error: unknown) {
         console.error('Profile Update Error:', error);
+        if (isUniqueViolation(error)) {
+            return NextResponse.json({ error: 'Email or mobile number already in use' }, { status: 400 });
+        }
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

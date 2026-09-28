@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { FamilyMember } from '@/lib/models';
+import connectDB, { isUuid } from '@/lib/db';
+import { familyMembers } from '@/lib/schema';
+import { and, eq } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -13,9 +14,8 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        await connectDB();
-        
-        // Support both Bearer token (mobile) and cookie (web)
+        const db = await connectDB();
+
         const authHeader = req.headers.get('authorization');
         let userId: string;
 
@@ -32,17 +32,21 @@ export async function DELETE(
             userId = payload.userId as string;
         }
 
-        // Await params in Next.js 16+
-        const { id } = await params;
-        const memberId = id;
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
-        // Verify the member belongs to the user
-        const member = await FamilyMember.findOne({ _id: memberId, userId });
+        const { id: memberId } = await params;
+        if (!isUuid(memberId)) {
+            return NextResponse.json({ error: 'Family member not found' }, { status: 404 });
+        }
+
+        const [member] = await db.select({ id: familyMembers.id }).from(familyMembers).where(and(eq(familyMembers.id, memberId), eq(familyMembers.userId, userId))).limit(1);
         if (!member) {
             return NextResponse.json({ error: 'Family member not found' }, { status: 404 });
         }
 
-        await FamilyMember.findByIdAndDelete(memberId);
+        await db.delete(familyMembers).where(eq(familyMembers.id, memberId));
 
         return NextResponse.json({
             success: true,

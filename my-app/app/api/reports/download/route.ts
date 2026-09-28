@@ -3,8 +3,9 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import connectDB from '@/lib/db';
-import { Profile, CarePlan, User } from '@/lib/models';
+import connectDB, { isUuid } from '@/lib/db';
+import { carePlans, profiles, users } from '@/lib/schema';
+import { desc, eq } from 'drizzle-orm';
 
 const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || 'fallback_secret_key_change_in_prod'
@@ -12,7 +13,7 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function GET(req: Request) {
     try {
-        await connectDB();
+        const db = await connectDB();
 
         // Support both Bearer token (mobile) and cookie (web)
         const authHeader = req.headers.get('authorization');
@@ -31,10 +32,13 @@ export async function GET(req: Request) {
             userId = payload.userId as string;
         }
 
-        // Fetch Data
-        const user = await User.findById(userId);
-        const profile = await Profile.findOne({ userId });
-        const carePlan = await CarePlan.findOne({ userId }); // Ensure you get the latest plan
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        const [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1);
+        const [carePlan] = await db.select().from(carePlans).where(eq(carePlans.userId, userId)).orderBy(desc(carePlans.updatedAt)).limit(1);
 
         if (!carePlan) {
             return NextResponse.json({ error: 'No Care Plan found' }, { status: 404 });

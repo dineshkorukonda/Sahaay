@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { CommunityEvent } from '@/lib/models';
+import connectDB, { isUuid } from '@/lib/db';
+import { communityEventAttendees, communityEvents } from '@/lib/schema';
+import { asc, eq, sql } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -26,38 +27,45 @@ async function getUserId(req: Request): Promise<string | null> {
     }
 }
 
-// Get all events
+function formatEventDate(date: Date) {
+    return date.toLocaleString('en-US', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
 export async function GET(_req: Request) {
     try {
-        await connectDB();
+        const db = await connectDB();
 
-        const events = await CommunityEvent.find()
-            .sort({ date: 1 })
-            .populate('createdBy', 'name')
-            .lean();
+        const events = await db.select({
+            id: communityEvents.id,
+            title: communityEvents.title,
+            date: communityEvents.date,
+            location: communityEvents.location,
+            type: communityEvents.type,
+            link: communityEvents.link,
+            attendees: sql<number>`count(${communityEventAttendees.userId})::int`,
+        }).from(communityEvents)
+            .leftJoin(communityEventAttendees, eq(communityEvents.id, communityEventAttendees.eventId))
+            .groupBy(communityEvents.id)
+            .orderBy(asc(communityEvents.date));
 
-        const formattedEvents = events.map((event: { _id: { toString(): string }; date: string | Date; title?: string; location?: string; type?: string; link?: string; attendees?: unknown[] }) => {
+        const formattedEvents = events.map((event) => {
             const eventDate = new Date(event.date);
-            const day = eventDate.getDate();
-            const month = eventDate.toLocaleString('default', { month: 'short' }).toUpperCase();
-            const formattedDate = eventDate.toLocaleString('en-US', {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
             return {
-                id: event._id.toString(),
+                id: event.id,
                 title: event.title,
-                date: formattedDate,
-                day,
-                month,
+                date: formatEventDate(eventDate),
+                day: eventDate.getDate(),
+                month: eventDate.toLocaleString('default', { month: 'short' }).toUpperCase(),
                 location: event.location,
                 type: event.type,
                 link: event.link,
-                attendees: event.attendees?.length || 0
+                attendees: Number(event.attendees) || 0
             };
         });
 
@@ -71,73 +79,66 @@ export async function GET(_req: Request) {
     }
 }
 
-// Create an event or RSVP to an event
 export async function POST(req: Request) {
     try {
-        await connectDB();
+        const db = await connectDB();
 
         const userId = await getUserId(req);
-        if (!userId) {
+        if (!isUuid(userId)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const { eventId, title, description, date, location, type, link } = await req.json();
 
-        // If eventId provided, RSVP to existing event
         if (eventId) {
-            const event = await CommunityEvent.findById(eventId);
+            if (!isUuid(eventId)) {
+                return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+            }
+
+            const [event] = await db.select().from(communityEvents).where(eq(communityEvents.id, eventId)).limit(1);
             if (!event) {
                 return NextResponse.json({ error: 'Event not found' }, { status: 404 });
             }
 
-            const isAttending = event.attendees.some((attendeeId: unknown) => String(attendeeId) === userId);
-            if (!isAttending) {
-                event.attendees.push(userId as any);
-                await event.save();
-            }
+            await db.insert(communityEventAttendees).values({ eventId, userId }).onConflictDoNothing();
+
+            const [countRow] = await db.select({
+                attendees: sql<number>`count(*)::int`,
+            }).from(communityEventAttendees).where(eq(communityEventAttendees.eventId, eventId));
 
             return NextResponse.json({
                 success: true,
                 message: 'RSVP successful',
                 event: {
-                    id: event._id.toString(),
+                    id: event.id,
                     title: event.title,
-                    attendees: event.attendees.length
+                    attendees: Number(countRow?.attendees) || 0
                 }
             });
         }
 
-        // Create new event
         if (!title || !date || !location || !type) {
             return NextResponse.json({ error: 'Title, date, location, and type are required' }, { status: 400 });
         }
 
-        const event = await CommunityEvent.create({
+        const [event] = await db.insert(communityEvents).values({
             title,
             description,
             date: new Date(date),
             location,
             type,
             link,
-            attendees: [userId],
-            createdBy: userId
-        });
+            createdBy: userId,
+        }).returning();
 
-        const eventDate = new Date(event.date);
-        const formattedDate = eventDate.toLocaleString('en-US', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        await db.insert(communityEventAttendees).values({ eventId: event.id, userId });
 
         return NextResponse.json({
             success: true,
             event: {
-                id: event._id.toString(),
+                id: event.id,
                 title: event.title,
-                date: formattedDate,
+                date: formatEventDate(new Date(event.date)),
                 location: event.location,
                 type: event.type,
                 attendees: 1

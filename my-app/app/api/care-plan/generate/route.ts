@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import connectDB from '@/lib/db';
-import { CarePlan, MedicalRecord } from '@/lib/models';
+import connectDB, { isUuid, withId } from '@/lib/db';
+import { carePlans, medicalRecords } from '@/lib/schema';
+import { desc, eq } from 'drizzle-orm';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -13,7 +14,7 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function POST(_req: Request) {
   try {
-    await connectDB();
+    const db = await connectDB();
     const token = (await cookies()).get('token')?.value;
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -21,11 +22,11 @@ export async function POST(_req: Request) {
 
     const { payload } = await jwtVerify(token, JWT_SECRET);
     const userId = payload.userId as string;
+    if (!isUuid(userId)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // Get latest medical records to understand the problem
-    const records = await MedicalRecord.find({ userId })
-      .sort({ analyzedAt: -1 })
-      .limit(5);
+    const records = await db.select().from(medicalRecords).where(eq(medicalRecords.userId, userId)).orderBy(desc(medicalRecords.analyzedAt)).limit(5);
 
     if (records.length === 0) {
       return NextResponse.json({
@@ -48,9 +49,7 @@ export async function POST(_req: Request) {
     };
 
     // Get all records for comprehensive analysis
-    const allRecords = await MedicalRecord.find({ userId })
-      .sort({ analyzedAt: -1 })
-      .limit(10);
+    const allRecords = await db.select().from(medicalRecords).where(eq(medicalRecords.userId, userId)).orderBy(desc(medicalRecords.analyzedAt)).limit(10);
 
     // Aggregate health data
     const allMedications = new Set<string>();
@@ -221,7 +220,7 @@ export async function POST(_req: Request) {
         return {
           ...daySchedule,
           date: dayDate.toISOString().split('T')[0],
-          appointments: (Array.isArray(daySchedule.appointments) ? daySchedule.appointments : []).map((apt: any) => ({
+          appointments: (Array.isArray(daySchedule.appointments) ? daySchedule.appointments : []).map((apt: Record<string, unknown>) => ({
             ...apt,
             status: 'pending'
           }))
@@ -250,26 +249,35 @@ export async function POST(_req: Request) {
     if (carePlanData.weeklySchedule) {
       carePlanData.weeklySchedule.forEach((day: Record<string, unknown>) => {
         if (Array.isArray(day.appointments)) {
-          day.appointments.forEach((apt: any) => {
+          day.appointments.forEach((apt: Record<string, unknown>) => {
             if (apt && Array.isArray(apt.time)) apt.time = apt.time.join(', ');
           });
         }
       });
     }
 
-    // Save or update care plan
-    const carePlan = await CarePlan.findOneAndUpdate(
-      { userId },
-      {
-        userId,
-        ...carePlanData
-      },
-      { new: true, upsert: true }
-    );
+    const existing = await db.select({ id: carePlans.id }).from(carePlans).where(eq(carePlans.userId, userId)).orderBy(desc(carePlans.updatedAt)).limit(1);
+    const values = {
+      userId,
+      title: typeof carePlanData.title === 'string' && carePlanData.title ? carePlanData.title : 'Care Plan',
+      description: carePlanData.description ?? null,
+      problem: carePlanData.problem ?? null,
+      medications: carePlanData.medications ?? [],
+      checkups: carePlanData.checkups ?? [],
+      dietPlan: carePlanData.dietPlan ?? null,
+      exercisePlan: carePlanData.exercisePlan ?? null,
+      dailyTasks: carePlanData.dailyTasks ?? [],
+      weeklySchedule: carePlanData.weeklySchedule ?? [],
+      updatedAt: new Date(),
+    };
+
+    const [carePlan] = existing[0]
+      ? await db.update(carePlans).set(values).where(eq(carePlans.id, existing[0].id)).returning()
+      : await db.insert(carePlans).values(values).returning();
 
     return NextResponse.json({
       success: true,
-      data: carePlan
+      data: withId(carePlan)
     });
   } catch (error: unknown) {
     console.error('Generate Care Plan Error:', error);

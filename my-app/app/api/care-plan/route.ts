@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { CarePlan, Badge, HealthStats } from '@/lib/models';
+import connectDB, { isUuid, withId } from '@/lib/db';
+import { badges, carePlans, healthStats } from '@/lib/schema';
+import { and, eq } from 'drizzle-orm';
+import { latestCarePlan } from '@/lib/queries';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -8,32 +10,46 @@ const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || 'fallback_secret_key_change_in_prod'
 );
 
+async function resolveUserId(req: Request): Promise<string | null> {
+    const authHeader = req.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const { payload } = await jwtVerify(token, JWT_SECRET);
+        return payload.userId as string;
+    }
+    const token = (await cookies()).get('token')?.value;
+    if (!token) return null;
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return payload.userId as string;
+}
+
+function carePlanFields(body: Record<string, unknown>) {
+    const patch: Partial<typeof carePlans.$inferInsert> = {};
+    if (typeof body.title === 'string') patch.title = body.title;
+    if (body.description !== undefined) patch.description = body.description as string | null;
+    if (body.problem !== undefined) patch.problem = body.problem as string | null;
+    if (body.medications !== undefined) patch.medications = body.medications as typeof patch.medications;
+    if (body.checkups !== undefined) patch.checkups = body.checkups as typeof patch.checkups;
+    if (body.dietPlan !== undefined) patch.dietPlan = body.dietPlan as typeof patch.dietPlan;
+    if (body.exercisePlan !== undefined) patch.exercisePlan = body.exercisePlan as typeof patch.exercisePlan;
+    if (body.dailyTasks !== undefined) patch.dailyTasks = body.dailyTasks as typeof patch.dailyTasks;
+    if (body.weeklySchedule !== undefined) patch.weeklySchedule = body.weeklySchedule as typeof patch.weeklySchedule;
+    return patch;
+}
+
 export async function GET(req: Request) {
     try {
-        await connectDB();
-        
-        // Support both Bearer token (mobile) and cookie (web)
-        const authHeader = req.headers.get('authorization');
-        let userId: string;
-
-        if (authHeader?.startsWith('Bearer ')) {
-            const token = authHeader.substring(7);
-            const { payload } = await jwtVerify(token, JWT_SECRET);
-            userId = payload.userId as string;
-        } else {
-            const token = (await cookies()).get('token')?.value;
-            if (!token) {
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-            }
-            const { payload } = await jwtVerify(token, JWT_SECRET);
-            userId = payload.userId as string;
+        const db = await connectDB();
+        const userId = await resolveUserId(req);
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const carePlan = await CarePlan.findOne({ userId }).sort({ updatedAt: -1 });
+        const carePlan = await latestCarePlan(db, userId);
 
         return NextResponse.json({
             success: true,
-            data: carePlan
+            data: carePlan ? withId(carePlan) : null
         });
     } catch (error: unknown) {
         console.error('Care Plan GET Error:', error);
@@ -44,97 +60,87 @@ export async function GET(req: Request) {
 
 export async function PUT(req: Request) {
     try {
-        await connectDB();
-        
-        // Support both Bearer token (mobile) and cookie (web)
-        const authHeader = req.headers.get('authorization');
-        let userId: string;
-
-        if (authHeader?.startsWith('Bearer ')) {
-            const token = authHeader.substring(7);
-            const { payload } = await jwtVerify(token, JWT_SECRET);
-            userId = payload.userId as string;
-        } else {
-            const token = (await cookies()).get('token')?.value;
-            if (!token) {
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-            }
-            const { payload } = await jwtVerify(token, JWT_SECRET);
-            userId = payload.userId as string;
+        const db = await connectDB();
+        const userId = await resolveUserId(req);
+        if (!isUuid(userId)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const body = await req.json();
+        const body = await req.json() as Record<string, unknown>;
+        const existingCarePlan = await latestCarePlan(db, userId);
+        const previousCompletedTasks = existingCarePlan?.dailyTasks?.filter((t) => t.status === 'completed') || [];
+        const fields = carePlanFields(body);
 
-        // Get existing care plan before update
-        const existingCarePlan = await CarePlan.findOne({ userId });
-        const previousCompletedTasks = existingCarePlan?.dailyTasks?.filter((t: { status?: string }) => t.status === 'completed') || [];
+        let carePlan;
+        if (existingCarePlan) {
+            const [updated] = await db.update(carePlans).set({
+                ...fields,
+                updatedAt: new Date(),
+            }).where(eq(carePlans.id, existingCarePlan.id)).returning();
+            carePlan = updated;
+        } else {
+            const [created] = await db.insert(carePlans).values({
+                userId,
+                title: typeof body.title === 'string' && body.title ? body.title : 'Care Plan',
+                ...fields,
+            }).returning();
+            carePlan = created;
+        }
 
-        const carePlan = await CarePlan.findOneAndUpdate(
-            { userId },
-            { $set: body },
-            { new: true, upsert: true }
-        );
-
-        // Update streak and points when tasks are completed
         if (body.dailyTasks && Array.isArray(body.dailyTasks)) {
             const completedTasks = body.dailyTasks.filter((t: { status?: string }) => t.status === 'completed');
-            
-            // Calculate newly completed tasks
             const newlyCompleted = completedTasks.length - previousCompletedTasks.length;
-            
+
             if (newlyCompleted > 0) {
-                // Get or create health stats
-                let healthStats = await HealthStats.findOne({ userId });
-                
-                if (!healthStats) {
-                    healthStats = await HealthStats.create({
+                let [stats] = await db.select().from(healthStats).where(eq(healthStats.userId, userId)).limit(1);
+
+                if (!stats) {
+                    const [created] = await db.insert(healthStats).values({
                         userId,
                         streak: 0,
                         points: 0
-                    });
+                    }).returning();
+                    stats = created;
                 }
-                
-                // Award points for completed tasks (10 points per task)
+
                 const pointsToAdd = newlyCompleted * 10;
-                healthStats.points = (healthStats.points || 0) + pointsToAdd;
-                
-                // Update streak logic: increment if tasks were completed today
+                let streak = stats.streak || 0;
+
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
-                const lastUpdated = healthStats.lastUpdated ? new Date(healthStats.lastUpdated) : null;
+                const lastUpdated = stats.lastUpdated ? new Date(stats.lastUpdated) : null;
                 const lastUpdatedDate = lastUpdated ? new Date(lastUpdated.setHours(0, 0, 0, 0)) : null;
-                
+
                 if (!lastUpdatedDate || lastUpdatedDate.getTime() === today.getTime()) {
                     // Same day - maintain streak
-                    // Streak is already correct
                 } else {
-                    // Check if yesterday
                     const yesterday = new Date(today);
                     yesterday.setDate(yesterday.getDate() - 1);
-                    
+
                     if (lastUpdatedDate.getTime() === yesterday.getTime()) {
-                        // Consecutive day - increment streak
-                        healthStats.streak = (healthStats.streak || 0) + 1;
+                        streak = (stats.streak || 0) + 1;
                     } else {
-                        // Streak broken - reset to 1
-                        healthStats.streak = 1;
+                        streak = 1;
                     }
                 }
-                
-                healthStats.lastUpdated = new Date();
-                await healthStats.save();
+
+                await db.update(healthStats).set({
+                    points: (stats.points || 0) + pointsToAdd,
+                    streak,
+                    lastUpdated: new Date(),
+                    updatedAt: new Date(),
+                }).where(eq(healthStats.id, stats.id));
             }
-            
-            // Award badge for completing 10 tasks
+
             if (completedTasks.length >= 10) {
-                const existingBadge = await Badge.findOne({
-                    userId,
-                    badgeType: 'task_completion',
-                    badgeName: 'Task Master'
-                });
-                
+                const [existingBadge] = await db.select({ id: badges.id }).from(badges).where(and(
+                    eq(badges.userId, userId),
+                    eq(badges.badgeType, 'task_completion'),
+                    eq(badges.badgeName, 'Task Master'),
+                )).limit(1);
+
                 if (!existingBadge) {
-                    await Badge.create({
+                    await db.insert(badges).values({
                         userId,
                         badgeType: 'task_completion',
                         badgeName: 'Task Master',
@@ -149,7 +155,7 @@ export async function PUT(req: Request) {
 
         return NextResponse.json({
             success: true,
-            data: carePlan
+            data: withId(carePlan)
         });
     } catch (error: unknown) {
         console.error('Care Plan PUT Error:', error);
