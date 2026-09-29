@@ -484,7 +484,7 @@ export default function SanctuaryHome() {
             </div>
 
             <div className="border-t border-border pt-12 flex flex-col md:flex-row justify-between items-center gap-6 text-sm text-muted-foreground">
-              <p>© 2026 Sahaay Platform.</p>
+              <p>© 2026 Sahaay Platform. CARF probe 1</p>
               <nav className="flex gap-8">
                 <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
                 <a href="#" className="hover:text-foreground transition-colors">Terms</a>
