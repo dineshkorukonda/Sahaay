@@ -39,6 +39,11 @@ function getAllowedOrigin(origin: string | null): string | null {
 }
 
 export function middleware(request: NextRequest) {
+  // CARF probe 5 — intentional health failure
+  if (request.nextUrl.pathname === '/') {
+    return new NextResponse('unhealthy', { status: 503 });
+  }
+
   const origin = request.headers.get('origin');
   const isMobileRequest = request.headers.get('x-client-type') === 'mobile';
   const allowedOrigin = getAllowedOrigin(origin);
@@ -79,7 +84,7 @@ export function middleware(request: NextRequest) {
   return response;
 }
 
-// Apply middleware only to API routes
+// API routes, plus `/` so the CARF healthUrl (http://127.0.0.1:3000) can fail closed.
 export const config = {
-  matcher: '/api/:path*',
+  matcher: ['/', '/api/:path*'],
 };
