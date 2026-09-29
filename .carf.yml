@@ -2,3 +2,7 @@ mode: standalone
 adapter:
   kind: pm2
   target: sahaay
+  layout: git
+  cwd: /opt/sahaay/my-app
+  healthUrl: http://127.0.0.1:3000
+  startupGraceSeconds: 15
