@@ -1,0 +1,4 @@
+mode: standalone
+adapter:
+  kind: pm2
+  target: sahaay
