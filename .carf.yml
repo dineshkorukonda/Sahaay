@@ -6,3 +6,9 @@ adapter:
   cwd: /opt/sahaay/my-app
   healthUrl: http://127.0.0.1:3000
   startupGraceSeconds: 15
+threshold:
+  types:
+    code:
+      baseWindow: 90
+    infra:
+      baseWindow: 45
