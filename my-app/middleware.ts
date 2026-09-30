@@ -39,10 +39,6 @@ function getAllowedOrigin(origin: string | null): string | null {
 }
 
 export function middleware(request: NextRequest) {
-  // CARF probe 5 — intentional health failure
-  if (request.nextUrl.pathname === '/') {
-    return new NextResponse('unhealthy', { status: 503 });
-  }
 
   const origin = request.headers.get('origin');
   const isMobileRequest = request.headers.get('x-client-type') === 'mobile';
