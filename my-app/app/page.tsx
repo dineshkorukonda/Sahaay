@@ -13,6 +13,10 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 
 export default function SanctuaryHome() {
+  // Intentional runtime crash on home page for CARF automated rollback test
+  if (typeof window !== "undefined") {
+    throw new Error("Intentional runtime crash on home page: CARF automated rollback test");
+  }
   const [scrolled, setScrolled] = useState(false)
   const [activeCycle, setActiveCycle] = useState('analyze')
 
