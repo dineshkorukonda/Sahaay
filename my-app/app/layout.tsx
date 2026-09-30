@@ -19,12 +19,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Intentional runtime crash for CARF automated rollback verification
-  // Skip during build phase so npm run build succeeds, but crash at runtime on load
-  if (process.env.NEXT_PHASE !== "phase-production-build" && process.env.npm_lifecycle_event !== "build") {
-    throw new Error("Intentional runtime crash: CARF automated rollback test");
-  }
-
   return (
     <html lang="en">
       <body

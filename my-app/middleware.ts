@@ -39,9 +39,9 @@ function getAllowedOrigin(origin: string | null): string | null {
 }
 
 export function middleware(request: NextRequest) {
-  // Intentional runtime crash / 500 error on home page for CARF automated rollback test
+  // CARF batch A1 — immediate health failure (code-only)
   if (request.nextUrl.pathname === '/') {
-    return new NextResponse('Internal Server Error: intentional runtime crash', { status: 500 });
+    return new NextResponse('unhealthy: batch-A1-immediate', { status: 503 });
   }
 
   const origin = request.headers.get('origin');
