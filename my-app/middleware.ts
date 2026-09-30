@@ -38,10 +38,17 @@ function getAllowedOrigin(origin: string | null): string | null {
   return null;
 }
 
+const g = globalThis as typeof globalThis & { __carfHealthBoot?: number };
+
 export function middleware(request: NextRequest) {
-  // CARF batch A3 — immediate health failure (code + infra, more files)
+  // CARF batch B1 — delayed health failure (~15s after process boot)
   if (request.nextUrl.pathname === '/') {
-    return new NextResponse('unhealthy: batch-A3-immediate', { status: 503 });
+    if (g.__carfHealthBoot === undefined) {
+      g.__carfHealthBoot = Date.now();
+    }
+    if (Date.now() - g.__carfHealthBoot >= 15_000) {
+      return new NextResponse('unhealthy: batch-B1-delayed-15s', { status: 503 });
+    }
   }
 
   const origin = request.headers.get('origin');
