@@ -42,7 +42,7 @@ export default function SanctuaryHome() {
             <div className="w-10 h-10 rounded-full bg-[#408E5F] flex items-center justify-center shadow-sm">
               <Sun className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-serif font-bold tracking-tight text-[#4F3F2F] hidden sm:block">Sahaay</span>
+            <span className="text-xl font-serif font-bold tracking-tight text-[#4F3F2F] hidden sm:block">fileshare</span>
           </div>
 
           {/* Links Section */}
@@ -87,8 +87,7 @@ export default function SanctuaryHome() {
             </div>
 
             <h1 className="font-serif text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-medium tracking-tight text-balance leading-[1] text-foreground">
-              Heal where <br />
-              <span className="italic text-primary/90">you feel safe.</span>
+              fileshare
             </h1>
 
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed text-balance font-light">
@@ -473,7 +472,7 @@ export default function SanctuaryHome() {
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 <Sun className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="font-serif text-4xl font-bold">Sahaay</h2>
+              <h2 className="font-serif text-4xl font-bold">fileshare</h2>
               <p className="text-muted-foreground max-w-md mx-auto">
                 Built with love to make chronic care management accessible, dignified, and simple for everyone.
               </p>
