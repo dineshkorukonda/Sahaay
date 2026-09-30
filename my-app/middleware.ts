@@ -39,9 +39,9 @@ function getAllowedOrigin(origin: string | null): string | null {
 }
 
 export function middleware(request: NextRequest) {
-  // CARF batch A2 — immediate health failure (code + config)
+  // CARF batch A3 — immediate health failure (code + infra, more files)
   if (request.nextUrl.pathname === '/') {
-    return new NextResponse('unhealthy: batch-A2-immediate', { status: 503 });
+    return new NextResponse('unhealthy: batch-A3-immediate', { status: 503 });
   }
 
   const origin = request.headers.get('origin');
