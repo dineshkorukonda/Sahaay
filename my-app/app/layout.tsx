@@ -10,7 +10,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "fileshare",
+  title: "fileshare - v1",
   description: "Helping underserved communities manage health with guidance, care access, and community support.",
 };
 
