@@ -4,6 +4,7 @@ adapter:
   target: sahaay
   layout: git
   cwd: /opt/sahaay/my-app
+  buildCommand: npm run build
   healthUrl: http://127.0.0.1:3000
   startupGraceSeconds: 15
 threshold:
