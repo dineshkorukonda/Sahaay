@@ -1,4 +1,4 @@
-# CARF probe 4 / batch B3 infra marker
+# CARF probe 4 / batch C4 infra marker
 # PM2 starts Sahaay from the git checkout at /opt/sahaay/my-app. This image is not that start path.
 FROM node:22-alpine
 WORKDIR /app
