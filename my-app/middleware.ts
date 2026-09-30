@@ -38,19 +38,7 @@ function getAllowedOrigin(origin: string | null): string | null {
   return null;
 }
 
-const g = globalThis as typeof globalThis & { __carfHealthBoot?: number };
-
 export function middleware(request: NextRequest) {
-  // CARF batch B3 — delayed health failure (~35s after process boot, code+infra)
-  if (request.nextUrl.pathname === '/') {
-    if (g.__carfHealthBoot === undefined) {
-      g.__carfHealthBoot = Date.now();
-    }
-    if (Date.now() - g.__carfHealthBoot >= 35_000) {
-      return new NextResponse('unhealthy: batch-B3-delayed-35s', { status: 503 });
-    }
-  }
-
   const origin = request.headers.get('origin');
   const isMobileRequest = request.headers.get('x-client-type') === 'mobile';
   const allowedOrigin = getAllowedOrigin(origin);
