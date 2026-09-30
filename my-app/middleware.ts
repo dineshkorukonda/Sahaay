@@ -41,13 +41,13 @@ function getAllowedOrigin(origin: string | null): string | null {
 const g = globalThis as typeof globalThis & { __carfHealthBoot?: number };
 
 export function middleware(request: NextRequest) {
-  // CARF batch B2 — delayed health failure (~25s after process boot, code+config)
+  // CARF batch B3 — delayed health failure (~35s after process boot, code+infra)
   if (request.nextUrl.pathname === '/') {
     if (g.__carfHealthBoot === undefined) {
       g.__carfHealthBoot = Date.now();
     }
-    if (Date.now() - g.__carfHealthBoot >= 25_000) {
-      return new NextResponse('unhealthy: batch-B2-delayed-25s', { status: 503 });
+    if (Date.now() - g.__carfHealthBoot >= 35_000) {
+      return new NextResponse('unhealthy: batch-B3-delayed-35s', { status: 503 });
     }
   }
 
