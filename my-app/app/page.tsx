@@ -86,8 +86,8 @@ export default function SanctuaryHome() {
               <span className="text-sm font-medium text-foreground/80">Your safe space for chronic care</span>
             </div>
 
-            <h1 className="font-serif text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-medium tracking-tight text-balance leading-[1] text-foreground">
-              fileshare
+            <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-medium tracking-tight text-balance leading-[1.1] text-foreground">
+              Sahaay — Smart Community Health & Care (v1.0 Live)
             </h1>
 
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed text-balance font-light">
