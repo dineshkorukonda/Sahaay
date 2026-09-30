@@ -18,7 +18,7 @@ if (fs.existsSync(rootEnv)) {
 }
 
 const nextConfig: NextConfig = {
-  // CARF batch A2 marker — harmless config touch for classifier config path
+  // CARF batch B2 marker — harmless config touch for classifier config path
   serverExternalPackages: ["pg"],
   env: {
     GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
