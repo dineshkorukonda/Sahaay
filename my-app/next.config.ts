@@ -18,7 +18,7 @@ if (fs.existsSync(rootEnv)) {
 }
 
 const nextConfig: NextConfig = {
-  // CARF batch C2 marker — config-only stable deploy
+  // CARF batch C3 marker — code+config stable deploy
   serverExternalPackages: ["pg"],
   env: {
     GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
