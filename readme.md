@@ -22,44 +22,6 @@ This project addresses the development of a **Smart Health Surveillance and Earl
 | Water quality integration | **Water Quality** page: manual test kit reporting (turbidity, pH, bacterial presence) |
 | Alerts for officials | **Outbreak Risk** dashboard with risk levels by area; Alert schema for future push/email |
 | Multilingual / tribal languages | **Language selection**: English, Hindi, **Assamese** (NER) |
-| Dashboards for health depts | **Outbreak Risk** page: hotspots, risk by area, symptom and water-fail counts |
-
-## Key Features
-
--   **AI Medical Report Analysis**: Upload medical PDFs to get detailed summaries, extracted vitals, and dietary recommendations using Google Gemini AI.
--   **Outbreak Risk & Surveillance**: AI-driven early warning by area using symptom and water quality data (last 14 days).
--   **Water Quality Reporting**: Submit and view water source test results (manual kits/sensors): turbidity, pH, bacterial presence.
--   **Nearby Care Finder**: Locate hospitals, clinics, and pharmacies near you with an interactive map interface.
--   **Health & Vitals Monitoring**: Track essential health metrics like Blood Pressure, Glucose, Heart Rate, and more.
--   **Family Health Management**: Manage health records and appointments for family members in one place.
--   **Community Support**: Join specific groups (e.g., Diabetes Support, Cardiac Care) to share experiences and get advice.
--   **Multilingual**: English, Hindi, Assamese for community and tribal language support.
--   **Secure Authentication**: Robust user authentication system using JWT.
-
-## Tech Stack
-
--   **Framework**: Next.js 16 (App Router)
--   **Language**: TypeScript
--   **Styling**: Tailwind CSS
--   **Database**: Neon Postgres (Drizzle ORM)
--   **AI Integration**: Google Gemini (via `google-generative-ai` SDK)
--   **Maps**: Google Maps JavaScript API
--   **PDF Processing**: `pdf-parse`, `jspdf`
-
-## Prerequisites
-
-Before you begin, ensure you have the following installed:
--   [Node.js](https://nodejs.org/) (v18 or higher recommended)
--   A [Neon](https://neon.tech) Postgres database
-
-## Local development (recommended)
-
-Run the app against a **Neon Postgres** database.
-
-1.  **Create a Neon project**
-    - Sign in at [neon.tech](https://neon.tech) and create a project.
-    - Copy the connection string from the Neon dashboard.
-
 2.  **Use env from the app directory**
     Next.js loads `.env` from the **`my-app`** directory (where `next dev` runs). So you need a `.env` inside `my-app`:
     - Copy the example: `cp my-app/.env.example my-app/.env`
