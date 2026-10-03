@@ -1,15 +1,15 @@
 mode: standalone
 adapter:
   kind: pm2
-  target: sahaay
+  target: Sahaay
   layout: git
-  cwd: /opt/sahaay/my-app
-  buildCommand: npm run build
+  cwd: /opt/app
   healthUrl: http://127.0.0.1:3000
-  startupGraceSeconds: 15
 threshold:
   types:
     code:
       baseWindow: 90
     infra:
       baseWindow: 45
+deploymentIntegration: github_actions
+runtimeAdapter: pm2
