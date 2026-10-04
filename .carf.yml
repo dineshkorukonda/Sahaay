@@ -1,9 +1,9 @@
 mode: standalone
 adapter:
   kind: pm2
-  target: Sahaay
+  target: sahaay
   layout: git
-  cwd: /opt/sahaay
+  cwd: /opt/sahaay/my-app
   healthUrl: http://127.0.0.1:3000
 threshold:
   types:
