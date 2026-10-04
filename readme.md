@@ -80,25 +80,4 @@ Sahaay uses **Behavior-Driven Development (BDD)** with Cucumber for the surveill
 |---------------|----------|
 | Outbreak Risk API (all areas, by PIN, risk levels) | `features/outbreak-risk.feature` |
 | Water Quality API (list, filter, submit, validation) | `features/water-quality.feature` |
-| Step definitions | `features/step_definitions/api.steps.js` |
-
-**Run BDD tests** (dev server must be running):
-
-1. **Terminal 1** – start the app:
-   ```bash
-   cd my-app
-   npm run dev
-   ```
-2. **Terminal 2** – run the tests (default: `http://localhost:3000`):
-   ```bash
-   cd my-app
-   npm run test:bdd
-   ```
-   If the app runs on another port (e.g. 3002), set the base URL:
-   ```bash
-   BASE_URL=http://localhost:3002 npm run test:bdd
-   ```
-
-**Expected result:** `7 scenarios (7 passed)`, `33 steps (33 passed)`.
-
-This is a hackathon project by dineshkorukonda @pavankarthikgaraga @nithinkumark
+| Step definitions | `features/step_definitions/api.steps.js` |\n\n**Run BDD tests** (dev server must be running):\n\n1. **Terminal 1** – start the app:\n   ```bash\n   cd my-app\n   npm run dev\n   ```\n2. **Terminal 2** – run the tests (default: `http://localhost:3000`):\n   ```bash\n   cd my-app\n   npm run test:bdd\n   ```\n   If the app runs on another port (e.g. 3002), set the base URL:\n   ```bash\n   BASE_URL=http://localhost:3002 npm run test:bdd\n   ```\n\n**Expected result:** `7 scenarios (7 passed)`, `33 steps (33 passed)`.\n\n## Deployment Monitoring & CARF Integration\n\nSahaay integrates with the **Change-Aware Rollback Framework (CARF)** to provide automated, risk-aware continuous deployment and runtime health surveillance:\n\n- **Static Vector Classification**: Analyzes incoming Git commit diffs to categorize changes across code, configuration, dependency, infrastructure, data, and test vectors.\n- **Dynamic Risk-Adaptive Thresholds**: Tightens or relaxes health thresholds and soak windows based on Tree-sitter AST complexity and blast radius.\n- **PM2 Zero-Downtime Reloads**: Integrates with PM2 process manager for continuous application reloads and seamless automated rollback on error threshold breach.\n- **Soak Window Health Probing**: Continuously evaluates application response codes, error rates, and latency during the post-deployment soak duration.\n\nThis is a hackathon project by dineshkorukonda @pavankarthikgaraga @nithinkumark\n
