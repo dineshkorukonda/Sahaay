@@ -25,7 +25,7 @@ jobs:
       - name: Get CARF policy
         id: carf
         env:
-          CARF_API_URL: http://127.0.0.1:14101
+          CARF_API_URL: https://carf.indevs.in
           CARF_API_KEY: ${{ secrets.CARF_API_KEY }}
           CARF_OWNER: ${{ github.repository_owner }}
           CARF_REPO: ${{ github.event.repository.name }}
