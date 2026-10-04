@@ -75,6 +75,13 @@ export function middleware(request: NextRequest) {
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Client-Type');
     response.headers.set('Access-Control-Allow-Credentials', 'true');
   }
+
+  // Feature flag: Configurable rate-limit header
+  if (process.env.ENABLE_RATE_LIMIT_HEADER === 'true') {
+    response.headers.set('X-RateLimit-Limit', process.env.RATE_LIMIT_MAX_REQUESTS || '120');
+    response.headers.set('X-RateLimit-Remaining', '119');
+    response.headers.set('X-RateLimit-Reset', '60');
+  }
   
   return response;
 }

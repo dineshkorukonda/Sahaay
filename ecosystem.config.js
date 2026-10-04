@@ -14,6 +14,8 @@ module.exports = {
         PORT: 3000,
         HTTP_KEEP_ALIVE_TIMEOUT: 65000,
         CACHE_TTL_SECONDS: 300,
+        ENABLE_RATE_LIMIT_HEADER: 'true',
+        RATE_LIMIT_MAX_REQUESTS: '120',
       },
     },
   ],
