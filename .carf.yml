@@ -3,7 +3,7 @@ adapter:
   kind: pm2
   target: Sahaay
   layout: git
-  cwd: /opt/app
+  cwd: /opt/
   healthUrl: http://127.0.0.1:3000
 threshold:
   types:
