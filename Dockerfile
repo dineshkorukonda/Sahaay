@@ -8,6 +8,9 @@ LABEL carf.suite="multi-vector-benchmark"
 
 WORKDIR /app
 
+ENV KEEP_ALIVE_TIMEOUT=65000
+ENV PORT=3000
+
 # Optimize layer ordering: copy package definitions prior to source files
 COPY my-app/package*.json ./
 
