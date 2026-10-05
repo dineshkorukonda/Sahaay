@@ -16,6 +16,7 @@ module.exports = {
         CACHE_TTL_SECONDS: 300,
         ENABLE_RATE_LIMIT_HEADER: 'true',
         RATE_LIMIT_MAX_REQUESTS: '120',
+        ENABLE_TELEMETRY_SAMPLE_HEADER: 'true',
       },
     },
   ],

@@ -82,6 +82,11 @@ export function middleware(request: NextRequest) {
     response.headers.set('X-RateLimit-Remaining', '119');
     response.headers.set('X-RateLimit-Reset', '60');
   }
+
+  // Feature flag: Telemetry sample header
+  if (process.env.ENABLE_TELEMETRY_SAMPLE_HEADER === 'true') {
+    response.headers.set('X-Telemetry-Sampled', '1');
+  }
   
   return response;
 }
