@@ -9,7 +9,8 @@ Feature: Outbreak Risk and Early Warning
 
   Scenario: Get outbreak risk for all areas
     When I GET "/api/outbreak-risk"
-    Then the response status should be 200
+    # TEMP CI FAILURE TEST — expected 200, deliberately asserted as 201.
+    Then the response status should be 201
     And the response JSON "success" should be true
     And the response JSON "areas" should be an array
     And the response JSON "since" should be present
