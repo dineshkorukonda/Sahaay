@@ -55,7 +55,10 @@ jobs:
 
       - name: Apply database schema
         run: npm run db:migrate
-
+        
+      - name: Build check
+        run: npm run build
+        
       - name: Start Next.js Server
         run: |
           npm run dev &
