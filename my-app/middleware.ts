@@ -87,6 +87,9 @@ export function middleware(request: NextRequest) {
   if (process.env.ENABLE_TELEMETRY_SAMPLE_HEADER === 'true') {
     response.headers.set('X-Telemetry-Sampled', '1');
   }
+
+  // Service version tag
+  response.headers.set('X-Service-Version', '0.1.1');
   
   return response;
 }
