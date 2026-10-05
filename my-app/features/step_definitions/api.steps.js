@@ -25,6 +25,11 @@ When('I GET {string}', async function (path) {
   }
 });
 
+When('a probe request is sent to health endpoint', async function () {
+  lastResponse = await fetch((this.baseUrl || BASE_URL) + '/api/health');
+  lastResponseJson = await lastResponse.json();
+});
+
 When('I POST {string} with body:', async function (path, body) {
   const url = (this.baseUrl || BASE_URL) + path;
   lastResponse = await fetch(url, {
