@@ -39,6 +39,16 @@ function getAllowedOrigin(origin: string | null): string | null {
 }
 
 export function middleware(request: NextRequest) {
+  // TEMP CARF rollback test: fail only the production host's configured `/` probe.
+  // GitHub Actions keeps CI startup and production tests healthy.
+  if (
+    request.nextUrl.pathname === '/' &&
+    process.env.NODE_ENV === 'production' &&
+    process.env.GITHUB_ACTIONS !== 'true'
+  ) {
+    return new NextResponse('Simulated CARF runtime failure', { status: 500 });
+  }
+
   const origin = request.headers.get('origin');
   const isMobileRequest = request.headers.get('x-client-type') === 'mobile';
   const allowedOrigin = getAllowedOrigin(origin);
