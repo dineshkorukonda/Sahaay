@@ -61,7 +61,7 @@ jobs:
         
       - name: Start Next.js Server
         run: |
-          npm run dev &
+          npm run start &
           npx wait-on http://127.0.0.1:3000
 
       - name: Run Tests
