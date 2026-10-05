@@ -6,10 +6,14 @@ adapter:
   cwd: /opt/sahaay/my-app
   healthUrl: http://127.0.0.1:3000
 threshold:
+  decay: 0.5
+  complexityDecay: 0.3
   types:
     code:
       baseWindow: 90
     infra:
       baseWindow: 45
+    dependency:
+      baseWindow: 120
 deploymentIntegration: github_actions
 runtimeAdapter: pm2
