@@ -4,6 +4,7 @@ FROM node:22-alpine
 LABEL maintainer="Sahaay Core Team <dev@sahaay.internal>"
 LABEL component="production-runtime"
 LABEL carf.vector="infra"
+LABEL carf.suite="multi-vector-benchmark"
 
 WORKDIR /app
 
